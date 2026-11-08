@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <cstddef>
+#include <memory>
 #include <new>
 #include <stdexcept>
 #include <pybind11/numpy.h>
@@ -9,6 +10,10 @@
 namespace py = pybind11;
 
 namespace {
+struct AstDeleter {
+    void operator()(double *ptr) const noexcept { ast_free(ptr); }
+};
+
 py::array_t<double> as_matrix(const py::handle &value)
 {
     auto array = py::array_t<double,
@@ -31,15 +36,17 @@ py::array_t<double> matmul(const py::object &left, const py::object &right)
     if (cols_a != rows_b) {
         throw std::invalid_argument("Matrix dimensions are incompatible for multiplication.");
     }
-    double *raw = ast_matmul(a.data(), b.data(), rows_a, cols_a, cols_b);
-    if (raw == nullptr) {
+
+    // RAII guarantees C-owned memory is released even if NumPy allocation throws.
+    std::unique_ptr<double, AstDeleter> raw(
+        ast_matmul(a.data(), b.data(), rows_a, cols_a, cols_b));
+    if (!raw) {
         throw std::bad_alloc();
     }
 
     py::array_t<double> output({static_cast<py::ssize_t>(rows_a),
                                 static_cast<py::ssize_t>(cols_b)});
-    std::copy(raw, raw + (rows_a * cols_b), output.mutable_data());
-    ast_free(raw);
+    std::copy(raw.get(), raw.get() + (rows_a * cols_b), output.mutable_data());
     return output;
 }
 } // namespace
