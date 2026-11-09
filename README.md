@@ -1,6 +1,6 @@
 # AstraTensor
 
-AstraTensor is an educational deep-learning framework built from first principles. Its aim is to train a small multilayer perceptron without using PyTorch or TensorFlow in the framework's implementation.
+AstraTensor is an educational deep-learning framework built from first principles. Its aim is to train multilayer perceptrons without using PyTorch or TensorFlow in the framework implementation.
 
 ## Architecture
 
@@ -18,13 +18,13 @@ AstraTensor is an educational deep-learning framework built from first principle
 - Dense layers with explicit weight and bias tensors.
 - MSE and numerically stable softmax cross-entropy.
 - SGD and Adam.
-- An XOR training example using AstraTensor for all model computation.
-- A deterministic nonlinear XOR-cluster benchmark with 256 samples, full-batch Adam training, and explicit loss/accuracy acceptance thresholds in CI.
+- XOR and deterministic nonlinear XOR-cluster training examples.
+- MNIST IDX loader with compact byte storage, mini-batch normalization, training/test evaluation and an end-to-end MLP example.
 - Optional native backend: the Python engine remains usable before compilation, with a pure-Python matrix multiplication fallback.
 
-NumPy is only used at the native extension boundary if supplied by the caller. PyTorch is not imported by production framework code.
+The MNIST loader uses Python's standard library. Image pixels remain compact bytes until a batch is prepared, avoiding the memory cost of converting the entire dataset into Python float lists. PyTorch is not imported by production framework code.
 
-## Build and run
+## Build and test
 
 Requires Python 3.9+, a C/C++ compiler, and pip.
 
@@ -32,14 +32,35 @@ Requires Python 3.9+, a C/C++ compiler, and pip.
 python -m pip install --upgrade pip
 python -m pip install -e .
 python -m pip install pytest
+python setup.py build_ext --inplace --force
 python -m pytest -q
 python examples/train_xor.py
 python examples/train_synthetic.py
+python examples/train_mnist.py --smoke-test
 ```
 
-To run the independent PyTorch parity tests, install PyTorch separately and run `python -m pytest -q tests/test_torch_parity.py`. CI runs these comparisons in a dedicated CPU-only job. PyTorch is not a runtime dependency.
+The smoke test exercises the MNIST model/training path using a tiny synthetic fixture. It does not download data and its metrics are not MNIST results.
 
-The synthetic benchmark generates four noisy Gaussian clusters arranged in an XOR pattern using Python's standard library. It reports training loss and accuracy and exits unsuccessfully if its deterministic training acceptance thresholds are not reached. The reported accuracy is training-set accuracy, not a held-out generalization score.
+## Train on real MNIST
+
+The first run downloads the four compressed MNIST IDX files into `data/mnist/`. Subsequent runs reuse the cached files.
+
+```bash
+python examples/train_mnist.py --epochs 5 --batch-size 128
+```
+
+Optional arguments include `--data-dir`, `--hidden-size`, `--limit-train`, and `--limit-test`. Limits are useful for quick local experiments; report full-dataset test metrics for a proper benchmark. The script prints training loss/accuracy and held-out test loss/accuracy after every epoch. All forward passes, loss calculations, backpropagation and parameter updates are performed by AstraTensor.
+
+## Independent numerical parity
+
+To run the independent PyTorch parity tests, install PyTorch separately and run:
+
+```bash
+python -m pip install torch
+python -m pytest -q tests/test_torch_parity.py
+```
+
+CI runs these comparisons in a dedicated CPU-only job. PyTorch is only a test oracle, never a runtime dependency or part of the MNIST training implementation.
 
 ## Repository layout
 
@@ -56,11 +77,16 @@ bindings.cpp
 setup.py
 pyproject.toml
 tests/
+  test_backend.py
+  test_engine_gradients.py
+  test_mnist_data.py
 examples/
-  train_xor.py
+  mnist_data.py
+  train_mnist.py
   train_synthetic.py
+  train_xor.py
 ```
 
 ## Limitations
 
-This is an early educational implementation, not a production tensor library. It currently supports only scalars and 2-D matrices, has no GPU execution, and does not yet include batching utilities, convolution, or a dataset loader.
+This is an educational CPU framework, not a production tensor library. It currently supports scalars and 2-D matrices, has no GPU execution or convolution, and does not yet provide automatic mixed precision or a general-purpose data-loader abstraction. MNIST is a first end-to-end benchmark, not evidence of production-scale performance.
