@@ -123,7 +123,10 @@ class Tensor:
 
     @data.setter
     def data(self, value):
-        self._data = _normalise(value)
+        normalised = _normalise(value)
+        if _shape(normalised) != self.shape:
+            raise ValueError("Tensor data shape cannot be changed.")
+        self._data = normalised
 
     @property
     def grad(self):
@@ -132,7 +135,10 @@ class Tensor:
 
     @grad.setter
     def grad(self, value):
-        self._grad = _normalise(value)
+        normalised = _normalise(value)
+        if _shape(normalised) != self.shape:
+            raise ValueError("Gradient shape must match tensor data shape.")
+        self._grad = normalised
 
     @property
     def shape(self):
