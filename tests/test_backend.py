@@ -41,3 +41,16 @@ def test_matmul_rejects_incompatible_dimensions():
 def test_matmul_rejects_non_matrix_inputs():
     with pytest.raises(ValueError, match="2-D"):
         matmul([1.0, 2.0], [[1.0], [2.0]])
+
+
+@pytest.mark.parametrize(
+    "left,right",
+    [
+        (np.empty((0, 2)), np.empty((2, 1))),
+        (np.empty((1, 0)), np.empty((0, 2))),
+        (np.empty((2, 1)), np.empty((1, 0))),
+    ],
+)
+def test_matmul_rejects_empty_matrix_dimensions(left, right):
+    with pytest.raises(ValueError, match="non-zero"):
+        matmul(left, right)

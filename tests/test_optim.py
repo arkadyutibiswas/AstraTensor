@@ -80,6 +80,12 @@ def test_sgd_rejects_non_positive_learning_rate(learning_rate):
         SGD([Tensor(1.0)], lr=learning_rate)
 
 
+@pytest.mark.parametrize("learning_rate", [float("nan"), float("inf"), -float("inf")])
+def test_sgd_rejects_non_finite_learning_rate(learning_rate):
+    with pytest.raises(ValueError, match="finite"):
+        SGD([Tensor(1.0)], lr=learning_rate)
+
+
 @pytest.mark.parametrize("kwargs", [
     {"lr": 0.0},
     {"lr": -0.1},
@@ -91,6 +97,21 @@ def test_sgd_rejects_non_positive_learning_rate(learning_rate):
 ])
 def test_adam_rejects_invalid_hyperparameters(kwargs):
     with pytest.raises(ValueError):
+        Adam([Tensor(1.0)], **kwargs)
+
+
+@pytest.mark.parametrize("kwargs", [
+    {"lr": float("nan")},
+    {"lr": float("inf")},
+    {"eps": float("nan")},
+    {"eps": float("inf")},
+    {"beta1": float("nan")},
+    {"beta1": float("inf")},
+    {"beta2": float("nan")},
+    {"beta2": float("inf")},
+])
+def test_adam_rejects_non_finite_hyperparameters(kwargs):
+    with pytest.raises(ValueError, match="finite"):
         Adam([Tensor(1.0)], **kwargs)
 
 

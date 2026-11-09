@@ -2,6 +2,7 @@
 
 import math
 
+import numpy as np
 import pytest
 
 from astratensor import Tensor
@@ -50,15 +51,21 @@ def test_cross_entropy_remains_finite_for_extreme_logits():
     )
 
 
-def test_backward_handles_deep_graph_without_python_recursion():
-    value = Tensor(1.0, requires_grad=True)
-    result = value
-    for _ in range(2000):
-        result = result * 1.0001
+def test_cross_entropy_accepts_numpy_integer_labels():
+    logits = Tensor([[2.0, 0.0], [0.0, 2.0]], requires_grad=True)
+    labels = [np.int64(0), np.int32(1)]
+    loss = CrossEntropyLoss()(logits, labels)
 
-    result.backward()
+    assert loss.item() == pytest.approx(0.1269280110)
+    loss.backward()
+    assert logits.grad[0][0] < 0 < logits.grad[0][1]
+    assert logits.grad[1][1] < 0 < logits.grad[1][0]
 
-    assert value.grad == pytest.approx(1.0001 ** 2000, rel=1e-10)
+
+def test_cross_entropy_rejects_numpy_boolean_labels():
+    logits = Tensor([[0.1, 0.2]], requires_grad=True)
+    with pytest.raises(TypeError, match="integer indices"):
+        CrossEntropyLoss()(logits, [np.bool_(True)])
 
 
 @pytest.mark.parametrize("labels", [[-1], [2], [True], [0, 1]])

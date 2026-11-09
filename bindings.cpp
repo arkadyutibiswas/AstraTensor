@@ -33,6 +33,9 @@ py::array_t<double> matmul(const py::object &left, const py::object &right)
     const auto rows_b = static_cast<std::size_t>(b.shape(0));
     const auto cols_b = static_cast<std::size_t>(b.shape(1));
 
+    if (rows_a == 0U || cols_a == 0U || rows_b == 0U || cols_b == 0U) {
+        throw std::invalid_argument("Matrix dimensions must be non-zero.");
+    }
     if (cols_a != rows_b) {
         throw std::invalid_argument("Matrix dimensions are incompatible for multiplication.");
     }
