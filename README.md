@@ -26,7 +26,7 @@ The MNIST loader uses Python's standard library. Image pixels remain compact byt
 
 ## Build and test
 
-Requires Python 3.9+, a C/C++ compiler, and pip.
+Requires Python 3.9+, pip, and a C/C++ compiler for the native extension.
 
 ```bash
 python -m pip install --upgrade pip
@@ -90,3 +90,7 @@ examples/
 ## Limitations
 
 This is an educational CPU framework, not a production tensor library. It currently supports scalars and 2-D matrices, has no GPU execution or convolution, and does not yet provide automatic mixed precision or a general-purpose data-loader abstraction. MNIST is a first end-to-end benchmark, not evidence of production-scale performance.
+
+## License
+
+AstraTensor is distributed under the [MIT License](LICENSE).
