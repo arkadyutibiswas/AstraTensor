@@ -1,9 +1,4 @@
-"""Reverse-mode automatic differentiation with NumPy-backed internal matrices.
-
-Public matrix values remain detached Python lists for compatibility. Internal
-forward values and gradients use contiguous float64 NumPy arrays; matrix
-multiplication continues to dispatch to AstraTensor's native C extension.
-"""
+"""Scalar and matrix tensors with reverse-mode automatic differentiation."""
 from __future__ import annotations
 
 from typing import Callable
@@ -53,7 +48,7 @@ def _matrix_matmul(left, right):
     try:
         from .backend import matmul as native_matmul
     except ImportError:
-        # Keep source installs usable before the optional extension is built.
+        # Use NumPy when the compiled extension is unavailable.
         return np.matmul(left, right)
     return native_matmul(left, right)
 
@@ -84,9 +79,7 @@ def _reduce_broadcast(gradient, original):
 
 
 def _grad_add(left, right):
-    # High-level layers still exchange detached public lists during this
-    # migration stage. Normalise matrix contributions before adding so list
-    # concatenation can never silently corrupt gradient shapes.
+    # Convert matrix gradients before addition; Python lists would concatenate.
     left_is_matrix = isinstance(left, (list, tuple, np.ndarray))
     right_is_matrix = isinstance(right, (list, tuple, np.ndarray))
     if left_is_matrix or right_is_matrix:
