@@ -83,12 +83,16 @@ class Adam:
         for parameter in self.parameters:
             key = id(parameter)
             if isinstance(parameter.data, list):
-                _adam_update_in_place(
+                # Tensor.data returns a detached compatibility copy. The
+                # in-place helper therefore updates only that copy; assign
+                # the result back so the Tensor's owned NumPy storage changes.
+                updated_data = _adam_update_in_place(
                     parameter.data, parameter.grad,
                     self.first_moment[key], self.second_moment[key],
                     self.beta1, self.beta2, first_scale, second_scale,
                     self.lr, self.eps,
                 )
+                parameter.data = updated_data
             else:
                 data, first, second = _adam_update_in_place(
                     parameter.data, parameter.grad,

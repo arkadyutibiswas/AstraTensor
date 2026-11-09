@@ -1,137 +1,143 @@
-"""A small reverse-mode automatic differentiation engine.
+"""Reverse-mode automatic differentiation with NumPy-backed internal matrices.
 
-The first release deliberately supports scalars and rectangular 2-D matrices.
-It uses Python lists for tensor storage; matrix multiplication dispatches to
-AstraTensor's compiled C backend when that extension is available.
+Public matrix values remain detached Python lists for compatibility. Internal
+forward values and gradients use contiguous float64 NumPy arrays; matrix
+multiplication continues to dispatch to AstraTensor's native C extension.
 """
 from __future__ import annotations
 
-from typing import Callable, Iterable
+from typing import Callable
+
+import numpy as np
 
 
 def _is_matrix(value):
-    return isinstance(value, (list, tuple))
+    return isinstance(value, (list, tuple, np.ndarray))
 
 
 def _normalise(data):
     if _is_matrix(data):
-        rows = [list(row) for row in data]
-        if not rows or not rows[0]:
+        try:
+            array = np.asarray(data, dtype=np.float64)
+        except (TypeError, ValueError) as exc:
+            raise ValueError("Tensor matrices must be rectangular and numeric.") from exc
+        if array.ndim != 2:
+            raise ValueError("Tensor matrices must be 2-D.")
+        if array.shape[0] == 0 or array.shape[1] == 0:
             raise ValueError("A matrix must have at least one row and one column.")
-        width = len(rows[0])
-        if any(not _is_matrix(row) or len(row) != width for row in rows):
-            raise ValueError("Tensor matrices must be rectangular.")
-        result = []
-        for row in rows:
-            converted = []
-            for item in row:
-                if not isinstance(item, (int, float)):
-                    raise TypeError("Tensor values must be numeric.")
-                converted.append(float(item))
-            result.append(converted)
-        return result
+        return np.array(array, dtype=np.float64, order="C", copy=True)
     if isinstance(data, (int, float)):
         return float(data)
     raise TypeError("Tensor data must be a number or a 2-D nested list.")
 
 
+def _public(value):
+    return value.tolist() if isinstance(value, np.ndarray) else value
+
+
 def _shape(value):
-    return (len(value), len(value[0])) if _is_matrix(value) else ()
+    if isinstance(value, (list, tuple, np.ndarray)):
+        return tuple(np.shape(value))
+    return ()
 
 
 def _zeros_like(value):
-    if _is_matrix(value):
-        return [[0.0 for _ in row] for row in value]
-    return 0.0
+    return np.zeros_like(value, dtype=np.float64) if isinstance(value, np.ndarray) else 0.0
 
 
 def _transpose(value):
-    return [list(column) for column in zip(*value)]
+    return value.T
 
 
 def _matrix_matmul(left, right):
     try:
         from .backend import matmul as native_matmul
     except ImportError:
-        # Pure-Python fallback keeps the autograd engine usable before building
-        # the optional native extension. The C backend is used when installed.
-        rows, inner, cols = len(left), len(left[0]), len(right[0])
-        return [
-            [sum(left[i][k] * right[k][j] for k in range(inner))
-             for j in range(cols)]
-            for i in range(rows)
-        ]
-    return native_matmul(left, right).tolist()
+        # Keep source installs usable before the optional extension is built.
+        return np.matmul(left, right)
+    return native_matmul(left, right)
 
 
 def _elementwise(left, right, operation):
-    left_matrix, right_matrix = _is_matrix(left), _is_matrix(right)
-    if left_matrix and right_matrix:
-        if _shape(left) != _shape(right):
-            raise ValueError("Matrix shapes must match for elementwise operations.")
-        return [
-            [operation(a, b) for a, b in zip(row_a, row_b)]
-            for row_a, row_b in zip(left, right)
-        ]
-    if left_matrix:
-        return [[operation(value, right) for value in row] for row in left]
-    if right_matrix:
-        return [[operation(left, value) for value in row] for row in right]
-    return operation(left, right)
+    if isinstance(left, np.ndarray) or isinstance(right, np.ndarray):
+        return operation(left, right)
+    return float(operation(left, right))
 
 
 def _sum_all(value):
-    return sum(sum(row) for row in value) if _is_matrix(value) else value
+    return float(np.sum(value)) if isinstance(value, np.ndarray) else value
 
 
 def _reduce_broadcast(gradient, original):
     """Reduce a broadcasted gradient back to the original scalar/matrix shape."""
-    if not _is_matrix(original):
+    if not isinstance(original, np.ndarray):
         return _sum_all(gradient)
     return gradient
 
 
 def _grad_add(left, right):
-    if _is_matrix(left):
-        if not _is_matrix(right) or _shape(left) != _shape(right):
+    # High-level layers still exchange detached public lists during this
+    # migration stage. Normalise matrix contributions before adding so list
+    # concatenation can never silently corrupt gradient shapes.
+    left_is_matrix = isinstance(left, (list, tuple, np.ndarray))
+    right_is_matrix = isinstance(right, (list, tuple, np.ndarray))
+    if left_is_matrix or right_is_matrix:
+        if not (left_is_matrix and right_is_matrix):
             raise ValueError("Gradient shapes do not match.")
-        return [
-            [a + b for a, b in zip(row_a, row_b)]
-            for row_a, row_b in zip(left, right)
-        ]
-    if _is_matrix(right):
-        raise ValueError("Gradient shapes do not match.")
+        left_array = np.asarray(left, dtype=np.float64)
+        right_array = np.asarray(right, dtype=np.float64)
+        if left_array.shape != right_array.shape:
+            raise ValueError("Gradient shapes do not match.")
+        return left_array + right_array
     return left + right
 
 
 class Tensor:
-    """A scalar or 2-D matrix that records operations for reverse-mode AD.
+    """A scalar or 2-D matrix with reverse-mode automatic differentiation.
 
-    Args:
-        data: A number or rectangular nested list.
-        requires_grad: Whether to calculate and accumulate this tensor's gradient.
+    Matrix data and gradients are stored internally as NumPy float64 arrays.
+    The public data/grad properties return detached Python lists to preserve
+    the original API while the engine avoids list conversions between ops.
     """
 
     def __init__(self, data, requires_grad=False, _children=(), _op=""):
-        self.data = _normalise(data)
-        self.grad = _zeros_like(self.data)
+        self._data = _normalise(data)
+        self._grad = _zeros_like(self._data)
         self.requires_grad = bool(requires_grad)
         self._prev = tuple(_children)
         self._op = _op
         self._backward: Callable[[], None] = lambda: None
 
     @property
+    def data(self):
+        """Return a scalar or detached nested-list matrix."""
+        return _public(self._data)
+
+    @data.setter
+    def data(self, value):
+        self._data = _normalise(value)
+
+    @property
+    def grad(self):
+        """Return a scalar or detached nested-list gradient."""
+        return _public(self._grad)
+
+    @grad.setter
+    def grad(self, value):
+        self._grad = _normalise(value)
+
+    @property
     def shape(self):
         """Return () for scalars or (rows, columns) for matrices."""
-        return _shape(self.data)
+        return _shape(self._data)
 
     @property
     def is_scalar(self):
-        return not _is_matrix(self.data)
+        return not isinstance(self._data, np.ndarray)
 
     def zero_grad(self):
-        """Clear this tensor's accumulated gradient in place."""
-        self.grad = _zeros_like(self.data)
+        """Clear this tensor's accumulated gradient."""
+        self._grad = _zeros_like(self._data)
 
     def _coerce(self, other):
         return other if isinstance(other, Tensor) else Tensor(other)
@@ -139,18 +145,18 @@ class Tensor:
     def __add__(self, other):
         other = self._coerce(other)
         output = Tensor(
-            _elementwise(self.data, other.data, lambda a, b: a + b),
+            _elementwise(self._data, other._data, np.add),
             self.requires_grad or other.requires_grad,
             (self, other), "add",
         )
 
         def backward():
             if self.requires_grad:
-                contribution = _reduce_broadcast(output.grad, self.data)
-                self.grad = _grad_add(self.grad, contribution)
+                contribution = _reduce_broadcast(output._grad, self._data)
+                self._grad = _grad_add(self._grad, contribution)
             if other.requires_grad:
-                contribution = _reduce_broadcast(output.grad, other.data)
-                other.grad = _grad_add(other.grad, contribution)
+                contribution = _reduce_broadcast(output._grad, other._data)
+                other._grad = _grad_add(other._grad, contribution)
 
         output._backward = backward
         return output
@@ -160,25 +166,21 @@ class Tensor:
     def __mul__(self, other):
         other = self._coerce(other)
         output = Tensor(
-            _elementwise(self.data, other.data, lambda a, b: a * b),
+            _elementwise(self._data, other._data, np.multiply),
             self.requires_grad or other.requires_grad,
             (self, other), "multiply",
         )
 
         def backward():
             if self.requires_grad:
-                contribution = _elementwise(
-                    output.grad, other.data, lambda grad, value: grad * value
-                )
-                self.grad = _grad_add(
-                    self.grad, _reduce_broadcast(contribution, self.data)
+                contribution = _elementwise(output._grad, other._data, np.multiply)
+                self._grad = _grad_add(
+                    self._grad, _reduce_broadcast(contribution, self._data)
                 )
             if other.requires_grad:
-                contribution = _elementwise(
-                    output.grad, self.data, lambda grad, value: grad * value
-                )
-                other.grad = _grad_add(
-                    other.grad, _reduce_broadcast(contribution, other.data)
+                contribution = _elementwise(output._grad, self._data, np.multiply)
+                other._grad = _grad_add(
+                    other._grad, _reduce_broadcast(contribution, other._data)
                 )
 
         output._backward = backward
@@ -188,7 +190,7 @@ class Tensor:
 
     def __matmul__(self, other):
         other = self._coerce(other)
-        if not _is_matrix(self.data) or not _is_matrix(other.data):
+        if not isinstance(self._data, np.ndarray) or not isinstance(other._data, np.ndarray):
             raise ValueError("Matrix multiplication requires two 2-D tensors.")
         if self.shape[1] != other.shape[0]:
             raise ValueError(
@@ -196,54 +198,44 @@ class Tensor:
             )
 
         output = Tensor(
-            _matrix_matmul(self.data, other.data),
+            _matrix_matmul(self._data, other._data),
             self.requires_grad or other.requires_grad,
             (self, other), "matmul",
         )
 
         def backward():
             if self.requires_grad:
-                contribution = _matrix_matmul(output.grad, _transpose(other.data))
-                self.grad = _grad_add(self.grad, contribution)
+                contribution = _matrix_matmul(output._grad, _transpose(other._data))
+                self._grad = _grad_add(self._grad, contribution)
             if other.requires_grad:
-                contribution = _matrix_matmul(_transpose(self.data), output.grad)
-                other.grad = _grad_add(other.grad, contribution)
+                contribution = _matrix_matmul(_transpose(self._data), output._grad)
+                other._grad = _grad_add(other._grad, contribution)
 
         output._backward = backward
         return output
 
     def relu(self):
         """Apply max(0, x) elementwise."""
-        if _is_matrix(self.data):
-            result = [[max(0.0, value) for value in row] for row in self.data]
+        if isinstance(self._data, np.ndarray):
+            result = np.maximum(self._data, 0.0)
         else:
-            result = max(0.0, self.data)
+            result = max(0.0, self._data)
         output = Tensor(result, self.requires_grad, (self,), "relu")
 
         def backward():
             if not self.requires_grad:
                 return
-            if _is_matrix(self.data):
-                contribution = [
-                    [
-                        output.grad[i][j] if self.data[i][j] > 0.0 else 0.0
-                        for j in range(len(self.data[0]))
-                    ]
-                    for i in range(len(self.data))
-                ]
+            if isinstance(self._data, np.ndarray):
+                contribution = output._grad * (self._data > 0.0)
             else:
-                contribution = output.grad if self.data > 0.0 else 0.0
-            self.grad = _grad_add(self.grad, contribution)
+                contribution = output._grad if self._data > 0.0 else 0.0
+            self._grad = _grad_add(self._grad, contribution)
 
         output._backward = backward
         return output
 
     def backward(self, gradient=None):
-        """Backpropagate from this tensor through its dynamically-built DAG.
-
-        A scalar output defaults to an upstream gradient of 1. A matrix output
-        requires an explicit gradient with exactly the same shape.
-        """
+        """Backpropagate through the graph using iterative topological traversal."""
         if gradient is None:
             if not self.is_scalar:
                 raise ValueError(
@@ -256,7 +248,6 @@ class Tensor:
             if _shape(gradient) != self.shape:
                 raise ValueError("The supplied gradient must match output shape.")
 
-        # Iterative DFS avoids Python recursion limits on deep computation graphs.
         topological = []
         visited = set()
         stack = [(self, False)]
@@ -273,16 +264,15 @@ class Tensor:
                 if parent not in visited:
                     stack.append((parent, False))
 
-        # Intermediate gradients belong to this backward pass and must not
-        # retain stale values. Leaf gradients intentionally accumulate.
+        # Intermediate gradients reset per pass; leaf gradients accumulate.
         for node in topological:
             if node._prev:
-                node.grad = _zeros_like(node.data)
+                node._grad = _zeros_like(node._data)
 
         if self._prev:
-            self.grad = gradient
+            self._grad = gradient
         else:
-            self.grad = _grad_add(self.grad, gradient)
+            self._grad = _grad_add(self._grad, gradient)
 
         for node in reversed(topological):
             node._backward()
@@ -291,7 +281,7 @@ class Tensor:
         """Return a scalar value; reject matrices to avoid ambiguous behavior."""
         if not self.is_scalar:
             raise ValueError("item() is only available for scalar tensors.")
-        return self.data
+        return self._data
 
     def __repr__(self):
         return (
