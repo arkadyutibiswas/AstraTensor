@@ -26,6 +26,8 @@ jobs:
         run: python -m pytest -q
       - name: Run XOR training example
         run: python examples/train_xor.py
+      - name: Run nonlinear synthetic classification benchmark
+        run: python examples/train_synthetic.py
 
   pytorch-parity:
     runs-on: ubuntu-latest
