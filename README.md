@@ -19,6 +19,7 @@ AstraTensor is an educational deep-learning framework built from first principle
 - MSE and numerically stable softmax cross-entropy.
 - SGD and Adam.
 - An XOR training example using AstraTensor for all model computation.
+- A deterministic nonlinear XOR-cluster benchmark with 256 samples, full-batch Adam training, and explicit loss/accuracy acceptance thresholds in CI.
 - Optional native backend: the Python engine remains usable before compilation, with a pure-Python matrix multiplication fallback.
 
 NumPy is only used at the native extension boundary if supplied by the caller. PyTorch is not imported by production framework code.
@@ -27,30 +28,38 @@ NumPy is only used at the native extension boundary if supplied by the caller. P
 
 Requires Python 3.9+, a C/C++ compiler, and pip.
 
-    python -m pip install --upgrade pip
-    python -m pip install -e .
-    python -m pip install pytest
-    python -m pytest -q
-    python examples/train_xor.py
+```bash
+python -m pip install --upgrade pip
+python -m pip install -e .
+python -m pip install pytest
+python -m pytest -q
+python examples/train_xor.py
+python examples/train_synthetic.py
+```
 
-To run the independent PyTorch parity tests, install PyTorch separately and add corresponding tests. PyTorch is not a runtime dependency.
+To run the independent PyTorch parity tests, install PyTorch separately and run `python -m pytest -q tests/test_torch_parity.py`. CI runs these comparisons in a dedicated CPU-only job. PyTorch is not a runtime dependency.
+
+The synthetic benchmark generates four noisy Gaussian clusters arranged in an XOR pattern using Python's standard library. It reports training loss and accuracy and exits unsuccessfully if its deterministic training acceptance thresholds are not reached. The reported accuracy is training-set accuracy, not a held-out generalization score.
 
 ## Repository layout
 
-    astratensor/
-      __init__.py
-      engine.py
-      nn.py
-      optim.py
-    src/
-      matrix_ops.c
-      matrix_ops.h
-    bindings.cpp
-    setup.py
-    pyproject.toml
-    tests/
-    examples/
-      train_xor.py
+```text
+astratensor/
+  __init__.py
+  engine.py
+  nn.py
+  optim.py
+src/
+  matrix_ops.c
+  matrix_ops.h
+bindings.cpp
+setup.py
+pyproject.toml
+tests/
+examples/
+  train_xor.py
+  train_synthetic.py
+```
 
 ## Limitations
 
