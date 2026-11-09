@@ -45,6 +45,7 @@ jobs:
         run: python examples/train_mnist.py --smoke-test
 
   pytorch-parity:
+    needs: test
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
