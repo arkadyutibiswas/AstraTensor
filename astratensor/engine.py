@@ -36,7 +36,9 @@ def _public(value):
 
 
 def _shape(value):
-    return tuple(value.shape) if isinstance(value, np.ndarray) else ()
+    if isinstance(value, (list, tuple, np.ndarray)):
+        return tuple(np.shape(value))
+    return ()
 
 
 def _zeros_like(value):
@@ -74,12 +76,19 @@ def _reduce_broadcast(gradient, original):
 
 
 def _grad_add(left, right):
-    if isinstance(left, np.ndarray):
-        if not isinstance(right, np.ndarray) or left.shape != right.shape:
+    # High-level layers still exchange detached public lists during this
+    # migration stage. Normalise matrix contributions before adding so list
+    # concatenation can never silently corrupt gradient shapes.
+    left_is_matrix = isinstance(left, (list, tuple, np.ndarray))
+    right_is_matrix = isinstance(right, (list, tuple, np.ndarray))
+    if left_is_matrix or right_is_matrix:
+        if not (left_is_matrix and right_is_matrix):
             raise ValueError("Gradient shapes do not match.")
-        return left + right
-    if isinstance(right, np.ndarray):
-        raise ValueError("Gradient shapes do not match.")
+        left_array = np.asarray(left, dtype=np.float64)
+        right_array = np.asarray(right, dtype=np.float64)
+        if left_array.shape != right_array.shape:
+            raise ValueError("Gradient shapes do not match.")
+        return left_array + right_array
     return left + right
 
 
