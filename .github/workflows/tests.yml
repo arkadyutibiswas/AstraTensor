@@ -1,4 +1,4 @@
-name: AstraTensor CI
+name: OddlyTyped CI
 
 on:
   push:
@@ -63,5 +63,5 @@ jobs:
           python -m pip install pybind11 pytest
       - name: Build native extension
         run: python setup.py build_ext --inplace --force
-      - name: Compare AstraTensor forward passes and gradients with PyTorch
+      - name: Compare OddlyTyped forward passes and gradients with PyTorch
         run: python -m pytest -q tests/test_torch_parity.py
