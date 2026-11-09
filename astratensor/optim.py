@@ -25,6 +25,15 @@ def _zeros_like(value):
     return np.zeros_like(value, dtype=np.float64) if isinstance(value, np.ndarray) else 0.0
 
 
+def _validate_finite_state(parameters):
+    """Reject invalid state before an optimizer changes any parameter."""
+    for parameter in parameters:
+        if not np.isfinite(parameter._data).all():
+            raise ValueError("Optimizer parameters must contain only finite values.")
+        if not np.isfinite(parameter._grad).all():
+            raise ValueError("Optimizer gradients must contain only finite values.")
+
+
 class SGD:
     """Stochastic gradient descent over an iterable of Tensor parameters."""
     def __init__(self, parameters, lr=0.01):
@@ -32,6 +41,7 @@ class SGD:
         self.parameters = list(parameters)
 
     def step(self):
+        _validate_finite_state(self.parameters)
         for parameter in self.parameters:
             parameter._data = parameter._data - self.lr * parameter._grad
 
@@ -55,6 +65,7 @@ class Adam:
         self.second_moment = {id(p): _zeros_like(p._data) for p in self.parameters}
 
     def step(self):
+        _validate_finite_state(self.parameters)
         self.step_count += 1
         first_scale = 1.0 / (1.0 - self.beta1 ** self.step_count)
         second_scale = 1.0 / (1.0 - self.beta2 ** self.step_count)

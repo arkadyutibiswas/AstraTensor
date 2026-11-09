@@ -127,3 +127,24 @@ def test_adam_updates_matrix_parameters_and_uses_numpy_moments():
     assert isinstance(optimizer.first_moment[id(parameter)], np.ndarray)
     assert optimizer.first_moment[id(parameter)].dtype == np.float64
     assert optimizer.first_moment[id(parameter)].shape == parameter.shape
+
+
+@pytest.mark.parametrize("optimizer_type", [SGD, Adam])
+@pytest.mark.parametrize("invalid_field", ["data", "grad"])
+@pytest.mark.parametrize("invalid_value", [float("nan"), float("inf")])
+def test_optimizers_reject_non_finite_state_before_updating_any_parameter(
+    optimizer_type, invalid_field, invalid_value
+):
+    valid = Tensor(2.0, requires_grad=True)
+    invalid = Tensor(3.0, requires_grad=True)
+    valid.grad = 0.5
+    invalid.grad = 0.25
+    setattr(invalid, invalid_field, invalid_value)
+    optimizer = optimizer_type([valid, invalid])
+
+    with pytest.raises(ValueError, match="finite"):
+        optimizer.step()
+
+    assert valid.data == pytest.approx(2.0)
+    if optimizer_type is Adam:
+        assert optimizer.step_count == 0
