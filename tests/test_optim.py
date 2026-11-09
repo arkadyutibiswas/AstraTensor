@@ -1,12 +1,12 @@
-"""Regression tests for AstraTensor's parameter update algorithms."""
+"""Regression tests for OddlyTyped's parameter update algorithms."""
 
 import math
 
 import numpy as np
 import pytest
 
-from astratensor import Tensor
-from astratensor.optim import Adam, SGD
+from oddlytyped import Tensor
+from oddlytyped.optim import Adam, SGD
 
 
 def test_sgd_updates_scalar_and_matrix_parameters():

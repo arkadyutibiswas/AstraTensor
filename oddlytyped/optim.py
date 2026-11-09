@@ -1,4 +1,4 @@
-"""NumPy-backed parameter update algorithms for AstraTensor."""
+"""NumPy-backed parameter update algorithms for OddlyTyped."""
 import math
 
 import numpy as np

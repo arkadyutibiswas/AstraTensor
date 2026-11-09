@@ -6,8 +6,6 @@ Stages A–D are implemented and merged into `main`. Tensor matrices and gradien
 
 Stage E's functional validation is complete for the current integration: the existing CI jobs passed, and the full MNIST benchmark completed successfully with exact reported metric parity against the independent PyTorch comparison. Performance measurements are recorded below as preliminary single-run observations; they are not a statistically robust speed claim.
 
-This document records the storage migration completed under the previous project name, AstraTensor. The current project name is OddlyTyped; the Python import package remains `astratensor` during this compatibility-preserving rename.
-
 ## Why change storage?
 
 The earlier engine stored matrices as nested Python lists. Matrix multiplication crosses the PyBind11 boundary, and the bridge converts list inputs to NumPy arrays and native results back to arrays before the engine converts them to lists. The boundary microbenchmark below quantifies the conversion overhead for representative MNIST matrix shapes.
@@ -16,7 +14,7 @@ These measurements identify conversion overhead as a candidate bottleneck. They 
 
 ## Historical benchmark
 
-- GitHub Actions run: [MNIST benchmark #3](https://github.com/arkadyutibiswas/AstraTensor/actions/runs/42641791922)
+- GitHub Actions run: [MNIST benchmark #3](https://github.com/arkadyutibiswas/OddlyTyped/actions/runs/42641791922)
 - Tested commit: `400ed8c9f09e643a3c4cf7044871c983447e128c`
 - Dataset: all 60,000 training samples and all 10,000 test samples
 - Model: 784 → 128 → 10; float64; Adam
@@ -29,7 +27,7 @@ These measurements identify conversion overhead as a candidate bottleneck. They 
 | 2 | 0.1640 | 95.32% | 0.1429 | 95.53% |
 | 3 | 0.1178 | 96.61% | 0.1081 | 96.76% |
 
-The controlled comparison initialized PyTorch from the AstraTensor weights and reported the same train/test loss and accuracy at each epoch. Final test accuracy delta was +0.00 percentage points.
+The controlled comparison initialized PyTorch from the OddlyTyped weights and reported the same train/test loss and accuracy at each epoch. Final test accuracy delta was +0.00 percentage points.
 
 The recorded end-to-end CPU timing was a single run and is not evidence of a stable speed advantage. The matrix multiplication boundary microbenchmark measured conversion overhead, not a whole-framework speedup.
 

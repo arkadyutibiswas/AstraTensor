@@ -1,4 +1,4 @@
-"""Train an AstraTensor MLP on MNIST without PyTorch/TensorFlow.
+"""Train an OddlyTyped MLP on MNIST without PyTorch/TensorFlow.
 
 The optional --smoke-test mode uses tiny in-memory fixtures so CI can validate
 the complete training path without downloading MNIST.
@@ -6,9 +6,9 @@ the complete training path without downloading MNIST.
 import argparse
 import random
 
-from astratensor import Tensor
-from astratensor.nn import CrossEntropyLoss, Linear, ReLU
-from astratensor.optim import Adam
+from oddlytyped import Tensor
+from oddlytyped.nn import CrossEntropyLoss, Linear, ReLU
+from oddlytyped.optim import Adam
 from mnist_data import MNISTDataset, limit_dataset, load_mnist
 
 
@@ -95,7 +95,7 @@ def _smoke_datasets():
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Train AstraTensor on MNIST.")
+    parser = argparse.ArgumentParser(description="Train OddlyTyped on MNIST.")
     parser.add_argument("--data-dir", default="data/mnist")
     parser.add_argument("--epochs", type=int, default=5)
     parser.add_argument("--batch-size", type=int, default=128)
@@ -115,7 +115,7 @@ def main():
     if args.smoke_test:
         training, test = _smoke_datasets()
         epochs = 1
-        print("AstraTensor | MNIST pipeline smoke test (synthetic fixture)")
+        print("OddlyTyped | MNIST pipeline smoke test (synthetic fixture)")
     else:
         training, test = load_mnist(args.data_dir)
         try:
@@ -124,7 +124,7 @@ def main():
         except (TypeError, ValueError) as exc:
             parser.error(str(exc))
         epochs = args.epochs
-        print("AstraTensor | MNIST handwritten-digit classification")
+        print("OddlyTyped | MNIST handwritten-digit classification")
 
     print(
         f"Train: {len(training)} | Test: {len(test)} | "

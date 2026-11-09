@@ -6,7 +6,7 @@ running pytest, so a missing or broken native module must fail the job.
 import numpy as np
 import pytest
 
-from astratensor.backend import matmul
+from oddlytyped.backend import matmul
 
 
 def test_matmul_accepts_python_nested_lists():

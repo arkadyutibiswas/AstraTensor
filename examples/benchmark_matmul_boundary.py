@@ -1,4 +1,4 @@
-"""Microbenchmark Python/native boundary costs for AstraTensor matmul.
+"""Microbenchmark Python/native boundary costs for OddlyTyped matmul.
 
 Run after building the extension:
     python examples/benchmark_matmul_boundary.py --batch-size 128 --repeats 30
@@ -11,7 +11,7 @@ import time
 
 import numpy as np
 
-from astratensor.backend import matmul
+from oddlytyped.backend import matmul
 
 
 def measure(function, repeats, warmup=5):
@@ -42,7 +42,7 @@ def main():
         ("weight-gradient", (128, batch), (batch, 10)),
     ]
 
-    print("AstraTensor native matmul boundary microbenchmark")
+    print("OddlyTyped native matmul boundary microbenchmark")
     print(f"Batch size: {batch} | Repeats: {args.repeats} | Median latency")
     print("All paths call the same compiled C kernel; input/output conversion differs.")
     print()

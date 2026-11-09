@@ -1,8 +1,8 @@
 import pytest
 
-from astratensor import Tensor
-from astratensor.nn import CrossEntropyLoss, Linear, MSELoss
-from astratensor.optim import Adam, SGD
+from oddlytyped import Tensor
+from oddlytyped.nn import CrossEntropyLoss, Linear, MSELoss
+from oddlytyped.optim import Adam, SGD
 
 
 def test_linear_forward_and_bias_gradient():

@@ -5,8 +5,8 @@ import math
 import numpy as np
 import pytest
 
-from astratensor import Tensor
-from astratensor.nn import CrossEntropyLoss
+from oddlytyped import Tensor
+from oddlytyped.nn import CrossEntropyLoss
 
 
 def _cross_entropy_value(values, labels):

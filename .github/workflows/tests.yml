@@ -25,15 +25,15 @@ jobs:
         run: python -m build
       - name: Install and smoke-test built wheel in a clean environment
         run: |
-          python -m venv "$RUNNER_TEMP/astratensor-wheel-env"
-          "$RUNNER_TEMP/astratensor-wheel-env/bin/python" -m pip install "numpy>=1.23"
-          "$RUNNER_TEMP/astratensor-wheel-env/bin/python" -m pip install --no-deps dist/*.whl
-          "$RUNNER_TEMP/astratensor-wheel-env/bin/python" -c 'import numpy as np; import astratensor; from astratensor.backend import matmul; actual = matmul(np.array([[1.0, 2.0]]), np.array([[3.0], [4.0]])); assert np.array_equal(actual, np.array([[11.0]])), actual; print("Installed wheel import and native matrix multiplication passed.")'
+          python -m venv "$RUNNER_TEMP/oddlytyped-wheel-env"
+          "$RUNNER_TEMP/oddlytyped-wheel-env/bin/python" -m pip install "numpy>=1.23"
+          "$RUNNER_TEMP/oddlytyped-wheel-env/bin/python" -m pip install --no-deps dist/*.whl
+          "$RUNNER_TEMP/oddlytyped-wheel-env/bin/python" -c 'import numpy as np; import oddlytyped; from oddlytyped.backend import matmul; actual = matmul(np.array([[1.0, 2.0]]), np.array([[3.0], [4.0]])); assert np.array_equal(actual, np.array([[11.0]])), actual; print("Installed wheel import and native matrix multiplication passed.")'
       - name: Rebuild and smoke-test wheel from source distribution
         run: |
           python -m pip wheel --no-deps --no-build-isolation --wheel-dir "$RUNNER_TEMP/sdist-wheel" dist/*.tar.gz
-          "$RUNNER_TEMP/astratensor-wheel-env/bin/python" -m pip install --no-deps --force-reinstall "$RUNNER_TEMP"/sdist-wheel/*.whl
-          "$RUNNER_TEMP/astratensor-wheel-env/bin/python" -c 'import numpy as np; import astratensor; from astratensor.backend import matmul; actual = matmul(np.array([[1.0, 2.0]]), np.array([[3.0], [4.0]])); assert np.array_equal(actual, np.array([[11.0]])), actual; print("Source-distribution rebuild, install, and native matrix multiplication passed.")'
+          "$RUNNER_TEMP/oddlytyped-wheel-env/bin/python" -m pip install --no-deps --force-reinstall "$RUNNER_TEMP"/sdist-wheel/*.whl
+          "$RUNNER_TEMP/oddlytyped-wheel-env/bin/python" -c 'import numpy as np; import oddlytyped; from oddlytyped.backend import matmul; actual = matmul(np.array([[1.0, 2.0]]), np.array([[3.0], [4.0]])); assert np.array_equal(actual, np.array([[11.0]])), actual; print("Source-distribution rebuild, install, and native matrix multiplication passed.")'
       - name: Run unit tests
         run: python -m pytest -q
       - name: Run XOR training example

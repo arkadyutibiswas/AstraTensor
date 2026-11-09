@@ -1,4 +1,4 @@
-"""High-level neural-network building blocks implemented on AstraTensor."""
+"""High-level neural-network building blocks implemented on OddlyTyped."""
 import math
 import random
 from numbers import Integral

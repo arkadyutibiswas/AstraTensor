@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from astratensor.storage import MatrixStorage
+from oddlytyped.storage import MatrixStorage
 
 
 def test_storage_owns_contiguous_float64_copy():

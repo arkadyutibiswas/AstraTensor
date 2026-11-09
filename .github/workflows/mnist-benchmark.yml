@@ -39,7 +39,7 @@ jobs:
         with:
           python-version: "3.11"
           cache: pip
-      - name: Install AstraTensor
+      - name: Install OddlyTyped
         run: |
           python -m pip install --upgrade pip
           python -m pip install -e .
@@ -63,7 +63,7 @@ jobs:
             args+=(--limit-test "$LIMIT_TEST")
           fi
           {
-            echo "AstraTensor MNIST benchmark"
+            echo "OddlyTyped MNIST benchmark"
             echo "Commit: $GITHUB_SHA"
             echo "Epochs: $EPOCHS"
             echo "Batch size: $BATCH_SIZE"
@@ -78,7 +78,7 @@ jobs:
           python examples/benchmark_matmul_boundary.py --batch-size 128 --repeats 30 2>&1 | tee benchmark-results/matmul-boundary-results.txt
       - name: Install PyTorch CPU benchmark oracle
         run: python -m pip install torch --index-url https://download.pytorch.org/whl/cpu
-      - name: Compare AstraTensor with PyTorch on MNIST
+      - name: Compare OddlyTyped with PyTorch on MNIST
         env:
           EPOCHS: ${{ inputs.epochs }}
           BATCH_SIZE: ${{ inputs.batch_size }}
@@ -98,7 +98,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: astratensor-mnist-results
+          name: oddlytyped-mnist-results
           path: benchmark-results/*.txt
           if-no-files-found: ignore
           retention-days: 30

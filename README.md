@@ -6,7 +6,7 @@ The framework is intended for learning and experimentation. PyTorch and TensorFl
 
 ## Components
 
-- **Tensor engine** (currently distributed as the `astratensor` Python module): scalar and 2-D tensor operations, operation graph, and reverse-mode backpropagation.
+- **Tensor engine** (`oddlytyped/engine.py`): scalar and 2-D tensor operations, operation graph, and reverse-mode backpropagation.
 - **Native backend**: row-major matrix multiplication exposed to Python through PyBind11.
 - **Neural-network API**: linear layers, ReLU, mean squared error, and softmax cross-entropy.
 - **Optimizers**: stochastic gradient descent and Adam.

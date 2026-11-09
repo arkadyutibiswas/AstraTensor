@@ -3,8 +3,8 @@ import pytest
 
 torch = pytest.importorskip("torch")
 
-from astratensor import Tensor
-from astratensor.nn import CrossEntropyLoss, Linear
+from oddlytyped import Tensor
+from oddlytyped.nn import CrossEntropyLoss, Linear
 
 
 TOL = 1e-5
