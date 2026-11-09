@@ -18,7 +18,7 @@ AstraTensor is an educational deep-learning framework built from first principle
 - Dense layers with explicit weight and bias tensors.
 - MSE and numerically stable softmax cross-entropy.
 - SGD and Adam.
-- An XOR training example using AstraTensor for all model computation.
+- An XOR training example using AstraTensor for all model computation.\n- A deterministic nonlinear XOR-cluster benchmark with 256 samples, full-batch Adam training, and an explicit CI accuracy/loss acceptance threshold.
 - Optional native backend: the Python engine remains usable before compilation, with a pure-Python matrix multiplication fallback.
 
 NumPy is only used at the native extension boundary if supplied by the caller. PyTorch is not imported by production framework code.
@@ -31,9 +31,9 @@ Requires Python 3.9+, a C/C++ compiler, and pip.
     python -m pip install -e .
     python -m pip install pytest
     python -m pytest -q
-    python examples/train_xor.py
+    python examples/train_xor.py\n    python examples/train_synthetic.py
 
-To run the independent PyTorch parity tests, install PyTorch separately and add corresponding tests. PyTorch is not a runtime dependency.
+To run the independent PyTorch parity tests, install PyTorch separately and run `python -m pytest -q tests/test_torch_parity.py`. CI runs these comparisons in a dedicated CPU-only job. PyTorch is not a runtime dependency.\n\nThe synthetic benchmark generates four noisy Gaussian clusters arranged in an XOR pattern using Python's standard library. It reports training loss and accuracy and exits unsuccessfully if its deterministic training acceptance thresholds are not reached. The reported accuracy is training-set accuracy, not a held-out generalization score.
 
 ## Repository layout
 
