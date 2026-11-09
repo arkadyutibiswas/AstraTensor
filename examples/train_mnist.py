@@ -124,6 +124,7 @@ def main():
         except (TypeError, ValueError) as exc:
             parser.error(str(exc))
         epochs = args.epochs
+        print("AstraTensor | MNIST handwritten-digit classification")
 
     print(
         f"Train: {len(training)} | Test: {len(test)} | "
