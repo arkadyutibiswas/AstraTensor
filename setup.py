@@ -4,9 +4,9 @@ from setuptools import Extension, setup
 import pybind11
 
 if os.name == "nt":
-    compile_args = ["/O2", "/W4", "/EHsc"]
+    compile_args = ["/O2", "/W4"]
 else:
-    # Optimized but IEEE-compliant; no -ffast-math or CPU-specific -march=native.
+    # Optimize hot loops without relaxing IEEE floating-point semantics.
     compile_args = [
         "-O3", "-funroll-loops",
         "-Wall", "-Wextra", "-Wpedantic", "-Werror",
@@ -22,9 +22,10 @@ extension = Extension(
 
 setup(
     name="astratensor",
-    version="0.1.0",
+    version="0.2.0",
     description="A from-scratch deep learning framework native backend",
     packages=["astratensor"],
     ext_modules=[extension],
+    install_requires=["numpy>=1.23"],
     zip_safe=False,
 )
