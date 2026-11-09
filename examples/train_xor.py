@@ -1,7 +1,7 @@
-"""Train a small XOR classifier using AstraTensor only."""
-from astratensor import Tensor
-from astratensor.nn import CrossEntropyLoss, Linear, ReLU
-from astratensor.optim import Adam
+"""Train a small XOR classifier using OddlyTyped only."""
+from oddlytyped import Tensor
+from oddlytyped.nn import CrossEntropyLoss, Linear, ReLU
+from oddlytyped.optim import Adam
 
 
 class XORModel:
@@ -32,7 +32,7 @@ def main():
     criterion = CrossEntropyLoss()
     optimizer = Adam(model.parameters(), lr=0.03)
 
-    print("AstraTensor | XOR classification")
+    print("OddlyTyped | XOR classification")
     for epoch in range(1, 501):
         logits = model(Tensor(inputs))
         loss = criterion(logits, labels)

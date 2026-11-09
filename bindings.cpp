@@ -56,7 +56,7 @@ py::array_t<double> matmul(const py::object &left, const py::object &right)
 
 PYBIND11_MODULE(backend, module)
 {
-    module.doc() = "AstraTensor native row-major matrix operations";
+    module.doc() = "OddlyTyped native row-major matrix operations";
     module.def("matmul", &matmul, py::arg("a"), py::arg("b"),
                "Multiply two 2-D numeric matrices using the native C kernel.");
 }

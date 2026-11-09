@@ -1,4 +1,4 @@
-# AstraTensor tests
+# OddlyTyped tests
 
 Run the core autograd tests with:
 

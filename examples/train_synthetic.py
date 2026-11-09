@@ -1,14 +1,14 @@
-"""Train AstraTensor on a deterministic nonlinear XOR-cluster benchmark.
+"""Train OddlyTyped on a deterministic nonlinear XOR-cluster benchmark.
 
 The dataset is generated with Python's standard library. All model operations,
-loss calculation, gradient propagation, and parameter updates use AstraTensor.
+loss calculation, gradient propagation, and parameter updates use OddlyTyped.
 """
 import math
 import random
 
-from astratensor import Tensor
-from astratensor.nn import CrossEntropyLoss, Linear, ReLU
-from astratensor.optim import Adam
+from oddlytyped import Tensor
+from oddlytyped.nn import CrossEntropyLoss, Linear, ReLU
+from oddlytyped.optim import Adam
 
 
 def make_xor_clusters(samples_per_cluster=64, seed=2026, spread=0.22):
@@ -68,7 +68,7 @@ def main():
     criterion = CrossEntropyLoss()
     optimizer = Adam(model.parameters(), lr=0.02)
 
-    print("AstraTensor | Nonlinear XOR-cluster classification")
+    print("OddlyTyped | Nonlinear XOR-cluster classification")
     print(f"Samples: {len(features)} | Features: 2 | Classes: 2")
     print("Training: full-batch Adam | Hidden layer: 16 ReLU units")
 

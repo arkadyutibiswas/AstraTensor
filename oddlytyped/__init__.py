@@ -1,4 +1,4 @@
-"""AstraTensor: a from-scratch deep-learning framework."""
+"""OddlyTyped: a from-scratch deep-learning framework."""
 from .engine import Tensor
 
 __version__ = "0.2.0"

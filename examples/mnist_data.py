@@ -115,7 +115,7 @@ def _download_if_missing(directory, filename):
     url = f"{_BASE_URL}/{filename}"
     try:
         request = urllib.request.Request(
-            url, headers={"User-Agent": "AstraTensor-MNIST-loader/1.0"}
+            url, headers={"User-Agent": "OddlyTyped-MNIST-loader/1.0"}
         )
         with urllib.request.urlopen(request, timeout=45) as response:
             with temporary.open("wb") as output:

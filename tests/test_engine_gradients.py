@@ -1,7 +1,7 @@
-"""Numerical and graph-behavior tests for AstraTensor reverse-mode autograd."""
+"""Numerical and graph-behavior tests for OddlyTyped reverse-mode autograd."""
 import pytest
 
-from astratensor import Tensor
+from oddlytyped import Tensor
 
 
 def test_scalar_add_and_multiply_accumulate_gradients():

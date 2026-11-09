@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from astratensor import Tensor
+from oddlytyped import Tensor
 
 
 def test_matrix_storage_is_internal_numpy_and_public_data_is_detached():

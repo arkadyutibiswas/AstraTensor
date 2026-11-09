@@ -1,4 +1,4 @@
-"""Controlled MNIST comparison: AstraTensor versus a CPU PyTorch reference.
+"""Controlled MNIST comparison: OddlyTyped versus a CPU PyTorch reference.
 
 Both models use identical initial parameters, data order, batches, architecture,
 and Adam hyperparameters. PyTorch is an optional benchmark oracle only.
@@ -10,9 +10,9 @@ import time
 import torch
 from torch import nn
 
-from astratensor import Tensor
-from astratensor.nn import CrossEntropyLoss, Linear, ReLU
-from astratensor.optim import Adam
+from oddlytyped import Tensor
+from oddlytyped.nn import CrossEntropyLoss, Linear, ReLU
+from oddlytyped.optim import Adam
 from mnist_data import limit_dataset, load_mnist
 
 
@@ -111,7 +111,7 @@ def evaluate_torch(model, criterion, dataset, batch_size):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Compare AstraTensor and PyTorch on MNIST.")
+    parser = argparse.ArgumentParser(description="Compare OddlyTyped and PyTorch on MNIST.")
     parser.add_argument("--data-dir", default="data/mnist")
     parser.add_argument("--epochs", type=int, default=3)
     parser.add_argument("--batch-size", type=int, default=128)
@@ -142,11 +142,11 @@ def main():
     torch_loss = nn.CrossEntropyLoss()
     rng = random.Random(args.seed)
 
-    print("AstraTensor vs PyTorch | controlled MNIST comparison")
+    print("OddlyTyped vs PyTorch | controlled MNIST comparison")
     print(f"Train: {len(training)} | Test: {len(test)} | Epochs: {args.epochs}")
     print(f"Architecture: 784 -> {args.hidden_size} -> 10 | Batch: {args.batch_size}")
     print("Precision: float64 | Optimizer: Adam(lr=0.001, betas=(0.9, 0.999), eps=1e-8)")
-    print("Initial weights: copied from AstraTensor to PyTorch")
+    print("Initial weights: copied from OddlyTyped to PyTorch")
     print()
     astra_elapsed = 0.0
     torch_elapsed = 0.0
@@ -167,18 +167,18 @@ def main():
         torch_elapsed += time.perf_counter() - start
 
         print(f"Epoch {epoch}/{args.epochs}")
-        print(f"  AstraTensor | train loss {a_train[0]:.4f} | train acc {a_train[1]*100:.2f}%"
+        print(f"  OddlyTyped | train loss {a_train[0]:.4f} | train acc {a_train[1]*100:.2f}%"
               f" | test loss {a_test[0]:.4f} | test acc {a_test[1]*100:.2f}%")
         print(f"  PyTorch     | train loss {t_train[0]:.4f} | train acc {t_train[1]*100:.2f}%"
               f" | test loss {t_test[0]:.4f} | test acc {t_test[1]*100:.2f}%")
 
     print()
-    print(f"AstraTensor elapsed (train + evaluation): {astra_elapsed:.2f}s")
+    print(f"OddlyTyped elapsed (train + evaluation): {astra_elapsed:.2f}s")
     print(f"PyTorch elapsed (train + evaluation): {torch_elapsed:.2f}s")
-    print(f"Final test accuracy delta (AstraTensor - PyTorch): "
+    print(f"Final test accuracy delta (OddlyTyped - PyTorch): "
           f"{(a_test[1] - t_test[1]) * 100:+.2f} percentage points")
     if torch_elapsed > 0:
-        print(f"Observed speed ratio (AstraTensor / PyTorch): {astra_elapsed / torch_elapsed:.2f}x")
+        print(f"Observed speed ratio (OddlyTyped / PyTorch): {astra_elapsed / torch_elapsed:.2f}x")
     print("Note: timings are single-run CPU measurements, not statistically robust claims.")
 
 

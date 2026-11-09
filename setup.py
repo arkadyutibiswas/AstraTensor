@@ -1,4 +1,4 @@
-"""Build AstraTensor's native backend with PyBind11."""
+"""Build OddlyTyped's native backend with PyBind11."""
 import os
 from pathlib import Path
 
@@ -18,7 +18,7 @@ else:
     ]
 
 extension = Extension(
-    name="astratensor.backend",
+    name="oddlytyped.backend",
     sources=["bindings.cpp", "src/matrix_ops.c"],
     include_dirs=[pybind11.get_include(), "src"],
     language="c++",
@@ -26,14 +26,14 @@ extension = Extension(
 )
 
 setup(
-    name="astratensor",
+    name="oddlytyped",
     version="0.2.0",
-    description="An educational deep-learning framework with a native C backend",
+    description="OddlyTyped: an educational deep-learning framework with a native C backend",
     long_description=README,
     long_description_content_type="text/markdown",
     license="MIT",
     license_files=["LICENSE"],
-    packages=["astratensor"],
+    packages=["oddlytyped"],
     python_requires=">=3.9",
     install_requires=["numpy>=1.23"],
     ext_modules=[extension],
@@ -48,8 +48,8 @@ setup(
         "Topic :: Scientific/Engineering :: Artificial Intelligence",
     ],
     project_urls={
-        "Source": "https://github.com/arkadyutibiswas/AstraTensor",
-        "Issues": "https://github.com/arkadyutibiswas/AstraTensor/issues",
+        "Source": "https://github.com/arkadyutibiswas/OddlyTyped",
+        "Issues": "https://github.com/arkadyutibiswas/OddlyTyped/issues",
     },
     zip_safe=False,
 )
