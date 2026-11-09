@@ -1,4 +1,6 @@
 """Tests for the deterministic nonlinear classification benchmark."""
+import pytest
+
 from examples.train_synthetic import make_xor_clusters
 
 
@@ -15,8 +17,13 @@ def test_xor_cluster_dataset_is_deterministic_and_balanced():
     assert all(len(point) == 2 for point in features_a)
 
 
-def test_xor_cluster_dataset_rejects_invalid_size():
-    import pytest
-
+@pytest.mark.parametrize("invalid", [0, -1, True, 1.5])
+def test_xor_cluster_dataset_rejects_invalid_size(invalid):
     with pytest.raises(ValueError, match="positive integer"):
-        make_xor_clusters(samples_per_cluster=0)
+        make_xor_clusters(samples_per_cluster=invalid)
+
+
+@pytest.mark.parametrize("invalid", [0.0, -0.1, float("nan"), float("inf"), True, "0.2"])
+def test_xor_cluster_dataset_rejects_invalid_spread(invalid):
+    with pytest.raises(ValueError, match="positive finite"):
+        make_xor_clusters(spread=invalid)

@@ -3,6 +3,7 @@
 The dataset is generated with Python's standard library. All model operations,
 loss calculation, gradient propagation, and parameter updates use AstraTensor.
 """
+import math
 import random
 
 from astratensor import Tensor
@@ -12,10 +13,13 @@ from astratensor.optim import Adam
 
 def make_xor_clusters(samples_per_cluster=64, seed=2026, spread=0.22):
     """Return four Gaussian clusters with XOR labels (positive product -> 0)."""
-    if not isinstance(samples_per_cluster, int) or samples_per_cluster <= 0:
+    if (not isinstance(samples_per_cluster, int)
+            or isinstance(samples_per_cluster, bool)
+            or samples_per_cluster <= 0):
         raise ValueError("samples_per_cluster must be a positive integer.")
-    if spread <= 0:
-        raise ValueError("spread must be positive.")
+    if (isinstance(spread, bool) or not isinstance(spread, (int, float))
+            or not math.isfinite(spread) or spread <= 0):
+        raise ValueError("spread must be a positive finite number.")
 
     rng = random.Random(seed)
     clusters = (

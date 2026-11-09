@@ -13,7 +13,7 @@ from torch import nn
 from astratensor import Tensor
 from astratensor.nn import CrossEntropyLoss, Linear, ReLU
 from astratensor.optim import Adam
-from mnist_data import load_mnist
+from mnist_data import limit_dataset, load_mnist
 
 
 class AstraMLP:
@@ -125,12 +125,11 @@ def main():
 
     torch.set_num_threads(1)
     training, test = load_mnist(args.data_dir)
-    if args.limit_train:
-        training = type(training)(training.images[:args.limit_train * 784],
-                                  training.labels[:args.limit_train])
-    if args.limit_test:
-        test = type(test)(test.images[:args.limit_test * 784],
-                          test.labels[:args.limit_test])
+    try:
+        training = limit_dataset(training, args.limit_train)
+        test = limit_dataset(test, args.limit_test)
+    except (TypeError, ValueError) as exc:
+        parser.error(str(exc))
 
     astra = AstraMLP(args.hidden_size, args.seed)
     reference = make_torch_model(astra)
