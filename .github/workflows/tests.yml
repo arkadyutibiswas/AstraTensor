@@ -46,6 +46,7 @@ jobs:
 
   pytorch-parity:
     needs: test
+    if: ${{ always() && needs.test.result == 'success' }}
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
