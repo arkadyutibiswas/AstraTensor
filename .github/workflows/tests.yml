@@ -19,9 +19,11 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           python -m pip install -e .
-          python -m pip install pybind11 pytest
+          python -m pip install pybind11 pytest build
       - name: Build native extension
         run: python setup.py build_ext --inplace --force
+      - name: Build source distribution and wheel
+        run: python -m build
       - name: Run unit tests
         run: python -m pytest -q
       - name: Run XOR training example
