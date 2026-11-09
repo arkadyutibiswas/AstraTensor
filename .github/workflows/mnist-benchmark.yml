@@ -72,6 +72,10 @@ jobs:
             echo
             python examples/train_mnist.py "${args[@]}"
           } 2>&1 | tee benchmark-results/mnist-results.txt
+      - name: Profile native matrix multiplication boundary
+        run: |
+          set -euo pipefail
+          python examples/benchmark_matmul_boundary.py --batch-size 128 --repeats 30 2>&1 | tee benchmark-results/matmul-boundary-results.txt
       - name: Install PyTorch CPU benchmark oracle
         run: python -m pip install torch --index-url https://download.pytorch.org/whl/cpu
       - name: Compare AstraTensor with PyTorch on MNIST
