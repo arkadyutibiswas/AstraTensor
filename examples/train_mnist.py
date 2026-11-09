@@ -5,12 +5,11 @@ the complete training path without downloading MNIST.
 """
 import argparse
 import random
-from pathlib import Path
 
 from astratensor import Tensor
 from astratensor.nn import CrossEntropyLoss, Linear, ReLU
 from astratensor.optim import Adam
-from examples.mnist_data import MNISTDataset, load_mnist
+from mnist_data import MNISTDataset, load_mnist
 
 
 class DigitMLP:
