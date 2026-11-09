@@ -1,5 +1,24 @@
 """NumPy-backed parameter update algorithms for AstraTensor."""
+import math
+
 import numpy as np
+
+
+def _finite_float(value, name):
+    try:
+        converted = float(value)
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise ValueError(f"{name} must be a finite number.") from exc
+    if not math.isfinite(converted):
+        raise ValueError(f"{name} must be a finite number.")
+    return converted
+
+
+def _positive_finite(value, name):
+    converted = _finite_float(value, name)
+    if converted <= 0.0:
+        raise ValueError(f"{name} must be positive.")
+    return converted
 
 
 def _zeros_like(value):
@@ -9,10 +28,8 @@ def _zeros_like(value):
 class SGD:
     """Stochastic gradient descent over an iterable of Tensor parameters."""
     def __init__(self, parameters, lr=0.01):
-        if lr <= 0:
-            raise ValueError("Learning rate must be positive.")
+        self.lr = _positive_finite(lr, "Learning rate")
         self.parameters = list(parameters)
-        self.lr = float(lr)
 
     def step(self):
         for parameter in self.parameters:
@@ -26,15 +43,13 @@ class SGD:
 class Adam:
     """Adam with float64 moment buffers matching each parameter's storage."""
     def __init__(self, parameters, lr=0.001, beta1=0.9, beta2=0.999, eps=1e-8):
-        if lr <= 0 or eps <= 0:
-            raise ValueError("Learning rate and epsilon must be positive.")
-        if not 0 <= beta1 < 1 or not 0 <= beta2 < 1:
+        self.lr = _positive_finite(lr, "Learning rate")
+        self.eps = _positive_finite(eps, "Epsilon")
+        self.beta1 = _finite_float(beta1, "beta1")
+        self.beta2 = _finite_float(beta2, "beta2")
+        if not 0.0 <= self.beta1 < 1.0 or not 0.0 <= self.beta2 < 1.0:
             raise ValueError("Adam beta values must be in [0, 1).")
         self.parameters = list(parameters)
-        self.lr = float(lr)
-        self.beta1 = float(beta1)
-        self.beta2 = float(beta2)
-        self.eps = float(eps)
         self.step_count = 0
         self.first_moment = {id(p): _zeros_like(p._data) for p in self.parameters}
         self.second_moment = {id(p): _zeros_like(p._data) for p in self.parameters}

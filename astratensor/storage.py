@@ -1,7 +1,8 @@
-"""Experimental NumPy-backed matrix storage for the next Tensor engine.
+"""Standalone NumPy-backed matrix-storage utility.
 
-This module is an isolated migration prototype. The public Tensor engine still
-uses list-backed storage until the adapter contract has been validated.
+The Tensor engine now stores matrix values and gradients in NumPy arrays.
+MatrixStorage remains a small independent utility for owned, contiguous
+matrix storage and explicit conversion to the public nested-list format.
 """
 from __future__ import annotations
 
