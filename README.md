@@ -1,15 +1,15 @@
-# AstraTensor
+# OddlyTyped
 
-AstraTensor is a small deep-learning framework implemented in Python with a native C matrix multiplication backend. It includes a tensor class, reverse-mode automatic differentiation, neural-network layers, loss functions, and optimizers.
+OddlyTyped is a small deep-learning framework implemented in Python with a native C matrix multiplication backend. It includes a tensor class, reverse-mode automatic differentiation, neural-network layers, loss functions, and optimizers.
 
 The framework is intended for learning and experimentation. PyTorch and TensorFlow are not used by the runtime implementation.
 
 ## Components
 
-- **Tensor engine** (`astratensor/engine.py`): scalar and 2-D tensor operations, operation graph, and reverse-mode backpropagation.
-- **Native backend** (`src/matrix_ops.c`, `bindings.cpp`): row-major matrix multiplication exposed to Python through PyBind11.
-- **Neural-network API** (`astratensor/nn.py`): linear layers, ReLU, mean squared error, and softmax cross-entropy.
-- **Optimizers** (`astratensor/optim.py`): stochastic gradient descent and Adam.
+- **Tensor engine** (currently distributed as the `astratensor` Python module): scalar and 2-D tensor operations, operation graph, and reverse-mode backpropagation.
+- **Native backend**: row-major matrix multiplication exposed to Python through PyBind11.
+- **Neural-network API**: linear layers, ReLU, mean squared error, and softmax cross-entropy.
+- **Optimizers**: stochastic gradient descent and Adam.
 - **Data and examples**: MNIST IDX loading, XOR training, and synthetic classification examples.
 
 Matrix values and gradients are stored internally as contiguous NumPy float64 arrays. The public tensor interface returns Python values and nested lists. If the native extension has not been built, matrix multiplication uses the NumPy fallback.
@@ -73,47 +73,10 @@ python -m pytest -q tests/test_torch_parity.py
 
 CI runs these tests in a separate CPU job.
 
-## Repository layout
-
-```text
-astratensor/
-  __init__.py
-  engine.py
-  nn.py
-  optim.py
-  storage.py
-src/
-  matrix_ops.c
-  matrix_ops.h
-bindings.cpp
-setup.py
-pyproject.toml
-tests/
-  test_backend.py
-  test_engine.py
-  test_engine_gradients.py
-  test_gradcheck.py
-  test_mnist_data.py
-  test_nn.py
-  test_numpy_tensor_storage.py
-  test_optim.py
-  test_storage.py
-  test_synthetic_data.py
-  test_torch_parity.py
-  test_torch_reference.py
-examples/
-  benchmark_matmul_boundary.py
-  compare_mnist.py
-  mnist_data.py
-  train_mnist.py
-  train_synthetic.py
-  train_xor.py
-```
-
 ## Limitations
 
-AstraTensor currently supports CPU execution with scalar and 2-D tensors. It does not include GPU kernels, convolution operations, automatic mixed precision, or a general-purpose data-loader API. Performance measurements should be treated as specific to the tested hardware, dataset, and configuration.
+OddlyTyped currently supports CPU execution with scalar and 2-D tensors. It does not include GPU kernels, convolution operations, automatic mixed precision, or a general-purpose data-loader API. Performance measurements should be treated as specific to the tested hardware, dataset, and configuration.
 
 ## License
 
-AstraTensor is released under the [MIT License](LICENSE).
+OddlyTyped is released under the [MIT License](LICENSE).
