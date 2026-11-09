@@ -1,26 +1,4 @@
 """Parameter update algorithms for AstraTensor."""
-import math
-
-
-def _zeros_like(value):
-    if isinstance(value, list):
-        return [[0.0 for _ in row] for row in value]
-    return 0.0
-
-
-def _combine(left, right, left_scale, right_scale):
-    if isinstance(left, list):
-        return [
-            [left_scale * a + right_scale * b for a, b in zip(row_a, row_b)]
-            for row_a, row_b in zip(left, right)
-        ]
-    return left_scale * left + right_scale * right
-
-
-def _square(value):
-    if isinstance(value, list):
-        return [[item * item for item in row] for row in value]
-    return value * value
 
 
 def _update_parameter(data, gradient, learning_rate):
@@ -32,16 +10,35 @@ def _update_parameter(data, gradient, learning_rate):
     return data - learning_rate * gradient
 
 
-def _adam_update(data, first, second, learning_rate, epsilon):
+def _adam_update_in_place(data, gradient, first, second, beta1, beta2,
+                          first_scale, second_scale, learning_rate, epsilon):
+    """Update moments and parameters in one pass, avoiding temporary matrices."""
     if isinstance(data, list):
-        return [
-            [
-                value - learning_rate * m / (math.sqrt(v) + epsilon)
-                for value, m, v in zip(data_row, first_row, second_row)
-            ]
-            for data_row, first_row, second_row in zip(data, first, second)
-        ]
-    return data - learning_rate * first / (math.sqrt(second) + epsilon)
+        for row_index, row in enumerate(data):
+            grad_row = gradient[row_index]
+            first_row = first[row_index]
+            second_row = second[row_index]
+            for column, value in enumerate(row):
+                grad = grad_row[column]
+                moment = beta1 * first_row[column] + (1.0 - beta1) * grad
+                variance = beta2 * second_row[column] + (1.0 - beta2) * grad * grad
+                first_row[column] = moment
+                second_row[column] = variance
+                corrected_moment = moment * first_scale
+                corrected_variance = variance * second_scale
+                row[column] = value - learning_rate * corrected_moment / (
+                    corrected_variance ** 0.5 + epsilon
+                )
+        return data
+
+    moment = beta1 * first + (1.0 - beta1) * gradient
+    variance = beta2 * second + (1.0 - beta2) * gradient * gradient
+    return (
+        data - learning_rate * (moment * first_scale) /
+        ((variance * second_scale) ** 0.5 + epsilon),
+        moment,
+        variance,
+    )
 
 
 class SGD:
@@ -81,31 +78,34 @@ class Adam:
 
     def step(self):
         self.step_count += 1
+        first_scale = 1.0 / (1.0 - self.beta1 ** self.step_count)
+        second_scale = 1.0 / (1.0 - self.beta2 ** self.step_count)
         for parameter in self.parameters:
             key = id(parameter)
-            self.first_moment[key] = _combine(
-                self.first_moment[key], parameter.grad,
-                self.beta1, 1.0 - self.beta1,
-            )
-            self.second_moment[key] = _combine(
-                self.second_moment[key], _square(parameter.grad),
-                self.beta2, 1.0 - self.beta2,
-            )
-            first_corrected = _combine(
-                _zeros_like(self.first_moment[key]),
-                self.first_moment[key],
-                0.0, 1.0 / (1.0 - self.beta1 ** self.step_count),
-            )
-            second_corrected = _combine(
-                _zeros_like(self.second_moment[key]),
-                self.second_moment[key],
-                0.0, 1.0 / (1.0 - self.beta2 ** self.step_count),
-            )
-            parameter.data = _adam_update(
-                parameter.data, first_corrected, second_corrected,
-                self.lr, self.eps,
-            )
+            if isinstance(parameter.data, list):
+                _adam_update_in_place(
+                    parameter.data, parameter.grad,
+                    self.first_moment[key], self.second_moment[key],
+                    self.beta1, self.beta2, first_scale, second_scale,
+                    self.lr, self.eps,
+                )
+            else:
+                data, first, second = _adam_update_in_place(
+                    parameter.data, parameter.grad,
+                    self.first_moment[key], self.second_moment[key],
+                    self.beta1, self.beta2, first_scale, second_scale,
+                    self.lr, self.eps,
+                )
+                parameter.data = data
+                self.first_moment[key] = first
+                self.second_moment[key] = second
 
     def zero_grad(self):
         for parameter in self.parameters:
             parameter.zero_grad()
+
+
+def _zeros_like(value):
+    if isinstance(value, list):
+        return [[0.0 for _ in row] for row in value]
+    return 0.0
