@@ -1,70 +1,81 @@
 # AstraTensor
 
-AstraTensor is an educational deep-learning framework built from first principles. Its aim is to train multilayer perceptrons without using PyTorch or TensorFlow in the framework implementation.
+AstraTensor is a small deep-learning framework implemented in Python with a native C matrix multiplication backend. It includes a tensor class, reverse-mode automatic differentiation, neural-network layers, loss functions, and optimizers.
 
-## Architecture
+The framework is intended for learning and experimentation. PyTorch and TensorFlow are not used by the runtime implementation.
 
-1. **Native C backend** — row-major matrix multiplication in \`src/matrix_ops.c\`, with explicit allocation and deallocation.
-2. **PyBind11 bridge** — \`bindings.cpp\` exposes the C kernel as \`astratensor.backend\`.
-3. **Autograd engine** — \`astratensor/engine.py\` tracks operations in a dynamic DAG and performs reverse-mode gradient propagation.
-4. **Neural-network API** — \`astratensor/nn.py\` provides dense layers, ReLU, MSE and cross-entropy losses; \`astratensor/optim.py\` provides SGD and Adam.
+## Components
 
-## Current scope
+- **Tensor engine** (`astratensor/engine.py`): scalar and 2-D tensor operations, operation graph, and reverse-mode backpropagation.
+- **Native backend** (`src/matrix_ops.c`, `bindings.cpp`): row-major matrix multiplication exposed to Python through PyBind11.
+- **Neural-network API** (`astratensor/nn.py`): linear layers, ReLU, mean squared error, and softmax cross-entropy.
+- **Optimizers** (`astratensor/optim.py`): stochastic gradient descent and Adam.
+- **Data and examples**: MNIST IDX loading, XOR training, and synthetic classification examples.
 
-- Scalar and rectangular 2-D tensors.
-- Addition, elementwise multiplication, matrix multiplication and ReLU.
-- Scalar-to-matrix broadcasting for addition and multiplication.
-- Gradient accumulation and topological backpropagation.
-- Dense layers with explicit weight and bias tensors.
-- MSE and numerically stable softmax cross-entropy.
-- SGD and Adam.
-- XOR and deterministic nonlinear XOR-cluster training examples.
-- MNIST IDX loader with compact byte storage, mini-batch normalization, training/test evaluation and an end-to-end MLP example.
-- Optional native backend: the Python engine remains usable before compilation, with a pure-Python matrix multiplication fallback.
+Matrix values and gradients are stored internally as contiguous NumPy float64 arrays. The public tensor interface returns Python values and nested lists. If the native extension has not been built, matrix multiplication uses the NumPy fallback.
 
-The MNIST loader uses Python's standard library. Image pixels remain compact bytes until a batch is prepared, avoiding the memory cost of converting the entire dataset into Python float lists. PyTorch is not imported by production framework code.
+## Supported operations
 
-## Build and test
+- Scalar and rectangular 2-D tensors
+- Addition, elementwise multiplication, matrix multiplication, and ReLU
+- Scalar and row-vector broadcasting
+- Gradient accumulation and reverse-mode backpropagation
+- Linear layers, MSE loss, and softmax cross-entropy
+- SGD and Adam
+- MNIST loading, mini-batch training, and evaluation
 
-Requires Python 3.9+, pip, and a C/C++ compiler for the native extension.
+## Requirements
 
-\`\`\`bash
+- Python 3.9 or later
+- NumPy 1.23 or later
+- A C/C++ compiler to build the native extension
+
+## Install and test
+
+From the repository root:
+
+```bash
 python -m pip install --upgrade pip
 python -m pip install -e .
 python -m pip install pytest
 python setup.py build_ext --inplace --force
 python -m pytest -q
+```
+
+Run the examples:
+
+```bash
 python examples/train_xor.py
 python examples/train_synthetic.py
 python examples/train_mnist.py --smoke-test
-\`\`\`
+```
 
-The smoke test exercises the MNIST model/training path using a tiny synthetic fixture. It does not download data and its metrics are not MNIST results.
+The MNIST smoke test uses a small synthetic fixture. It checks the training path without downloading MNIST and does not produce MNIST accuracy results.
 
-## Train on real MNIST
+## MNIST training
 
-The first run downloads the four compressed MNIST IDX files into \`data/mnist/\`. Subsequent runs reuse the cached files.
+The training script downloads the MNIST IDX files on the first run and caches them in `data/mnist/`.
 
-\`\`\`bash
+```bash
 python examples/train_mnist.py --epochs 5 --batch-size 128
-\`\`\`
+```
 
-Optional arguments include \`--data-dir\`, \`--hidden-size\`, \`--limit-train\`, and \`--limit-test\`. Limits are useful for quick local experiments; report full-dataset test metrics for a proper benchmark. The script prints training loss/accuracy and held-out test loss/accuracy after every epoch. All forward passes, loss calculations, backpropagation and parameter updates are performed by AstraTensor.
+Use `--data-dir`, `--hidden-size`, `--limit-train`, and `--limit-test` to change the data location or reduce the dataset for local experiments. The script reports training and test loss and accuracy after each epoch.
 
-## Independent numerical parity
+## PyTorch comparison tests
 
-To run the independent PyTorch parity tests, install PyTorch separately and run:
+PyTorch is used only as an independent reference in the parity tests. It is not a runtime dependency.
 
-\`\`\`bash
+```bash
 python -m pip install torch
 python -m pytest -q tests/test_torch_parity.py
-\`\`\`
+```
 
-CI runs these comparisons in a dedicated CPU-only job. PyTorch is only a test oracle, never a runtime dependency or part of the MNIST training implementation.
+CI runs these tests in a separate CPU job.
 
 ## Repository layout
 
-\`\`\`text
+```text
 astratensor/
   __init__.py
   engine.py
@@ -97,12 +108,12 @@ examples/
   train_mnist.py
   train_synthetic.py
   train_xor.py
-\`\`\`
+```
 
 ## Limitations
 
-This is an educational CPU framework, not a production tensor library. It currently supports scalars and 2-D matrices, has no GPU execution or convolution, and does not yet provide automatic mixed precision or a general-purpose data-loader abstraction. MNIST is a first end-to-end benchmark, not evidence of production-scale performance.
+AstraTensor currently supports CPU execution with scalar and 2-D tensors. It does not include GPU kernels, convolution operations, automatic mixed precision, or a general-purpose data-loader API. Performance measurements should be treated as specific to the tested hardware, dataset, and configuration.
 
 ## License
 
-AstraTensor is distributed under the [MIT License](LICENSE).
+AstraTensor is released under the [MIT License](LICENSE).

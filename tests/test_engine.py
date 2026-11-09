@@ -79,3 +79,16 @@ def test_matrix_row_broadcast_reduces_gradient_to_original_shape():
     (row + matrix).backward([[1.0, 2.0], [3.0, 4.0]])
     assert row.grad == [[4.0, 6.0]]
     assert matrix.grad == [[1.0, 2.0], [3.0, 4.0]]
+
+
+def test_data_and_gradient_setters_reject_shape_changes():
+    tensor = Tensor([[1.0, 2.0]], requires_grad=True)
+    with pytest.raises(ValueError, match="data shape cannot be changed"):
+        tensor.data = [[1.0], [2.0]]
+    with pytest.raises(ValueError, match="Gradient shape must match"):
+        tensor.grad = [[1.0], [2.0]]
+
+    tensor.data = [[3.0, 4.0]]
+    tensor.grad = [[0.5, 0.25]]
+    assert tensor.data == [[3.0, 4.0]]
+    assert tensor.grad == [[0.5, 0.25]]
