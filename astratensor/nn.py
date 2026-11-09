@@ -1,6 +1,7 @@
 """High-level neural-network building blocks implemented on AstraTensor."""
 import math
 import random
+from numbers import Integral
 
 import numpy as np
 
@@ -20,7 +21,8 @@ class Module:
 class Linear(Module):
     """Fully connected layer: output = input @ weight + bias."""
     def __init__(self, in_features, out_features, seed=None):
-        if not isinstance(in_features, int) or not isinstance(out_features, int):
+        if (not isinstance(in_features, int) or isinstance(in_features, bool)
+                or not isinstance(out_features, int) or isinstance(out_features, bool)):
             raise TypeError("Layer dimensions must be integers.")
         if in_features <= 0 or out_features <= 0:
             raise ValueError("Layer dimensions must be positive.")
@@ -42,7 +44,6 @@ class Linear(Module):
             raise ValueError(
                 f"Linear expected a 2-D input with {self.in_features} features."
             )
-        # Tensor addition handles bias broadcasting and its reverse reduction.
         return inputs @ self.weight + self.bias
 
     def parameters(self):
@@ -62,7 +63,13 @@ class MSELoss(Module):
         if not isinstance(prediction, Tensor):
             prediction = Tensor(prediction)
         target_data = target._data if isinstance(target, Tensor) else target
-        target_array = np.asarray(target_data, dtype=np.float64) if _is_matrix(target_data) else float(target_data)
+        try:
+            target_array = (
+                np.asarray(target_data, dtype=np.float64)
+                if _is_matrix(target_data) else float(target_data)
+            )
+        except (TypeError, ValueError, OverflowError) as exc:
+            raise ValueError("Prediction and target shapes must match.") from exc
         if isinstance(prediction._data, np.ndarray) != isinstance(target_array, np.ndarray):
             raise ValueError("Prediction and target shapes must match.")
         if isinstance(prediction._data, np.ndarray):
@@ -95,15 +102,20 @@ class CrossEntropyLoss(Module):
         if not isinstance(logits._data, np.ndarray):
             raise ValueError("CrossEntropyLoss expects (batch, classes) logits.")
         batch_size, class_count = logits._data.shape
-        targets = list(targets)
+        try:
+            targets = list(targets)
+        except TypeError as exc:
+            raise TypeError("Class targets must be an iterable of integer indices.") from exc
         if len(targets) != batch_size:
             raise ValueError("Provide exactly one target class for each batch row.")
-        if any(not isinstance(target, int) or isinstance(target, bool)
+        if any(not isinstance(target, Integral) or isinstance(target, (bool, np.bool_))
                for target in targets):
             raise TypeError("Class targets must be integer indices.")
-        target_indices = np.asarray(targets, dtype=np.int64)
-        if np.any(target_indices < 0) or np.any(target_indices >= class_count):
+        if any(int(target) < 0 or int(target) >= class_count for target in targets):
             raise ValueError("Target class index is outside the logits range.")
+        target_indices = np.fromiter(
+            (int(target) for target in targets), dtype=np.int64, count=batch_size
+        )
 
         shifted = logits._data - np.max(logits._data, axis=1, keepdims=True)
         exponentials = np.exp(shifted)
