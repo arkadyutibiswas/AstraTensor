@@ -72,11 +72,29 @@ jobs:
             echo
             python examples/train_mnist.py "${args[@]}"
           } 2>&1 | tee benchmark-results/mnist-results.txt
+      - name: Install PyTorch CPU benchmark oracle
+        run: python -m pip install torch --index-url https://download.pytorch.org/whl/cpu
+      - name: Compare AstraTensor with PyTorch on MNIST
+        env:
+          EPOCHS: ${{ inputs.epochs }}
+          BATCH_SIZE: ${{ inputs.batch_size }}
+          LIMIT_TRAIN: ${{ inputs.limit_train }}
+          LIMIT_TEST: ${{ inputs.limit_test }}
+        run: |
+          set -euo pipefail
+          args=(--epochs "$EPOCHS" --batch-size "$BATCH_SIZE")
+          if [[ "$LIMIT_TRAIN" != "0" ]]; then
+            args+=(--limit-train "$LIMIT_TRAIN")
+          fi
+          if [[ "$LIMIT_TEST" != "0" ]]; then
+            args+=(--limit-test "$LIMIT_TEST")
+          fi
+          python examples/compare_mnist.py "${args[@]}" 2>&1 | tee benchmark-results/comparison-results.txt
       - name: Upload training metrics
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: astratensor-mnist-results
-          path: benchmark-results/mnist-results.txt
+          path: benchmark-results/*.txt
           if-no-files-found: ignore
           retention-days: 30
