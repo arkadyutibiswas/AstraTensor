@@ -4,9 +4,9 @@ from setuptools import Extension, setup
 import pybind11
 
 if os.name == "nt":
-    compile_args = ["/O2", "/W4"]
+    compile_args = ["/O2", "/W4", "/EHsc"]
 else:
-    # Optimize hot loops without relaxing IEEE floating-point semantics.
+    # Optimized but IEEE-compliant; no -ffast-math or CPU-specific -march=native.
     compile_args = [
         "-O3", "-funroll-loops",
         "-Wall", "-Wextra", "-Wpedantic", "-Werror",
