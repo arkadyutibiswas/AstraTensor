@@ -71,3 +71,11 @@ def test_non_grad_tensor_does_not_receive_gradient():
     (x * y).backward()
     assert x.grad == 0.0
     assert y.grad == pytest.approx(2.0)
+
+
+def test_matrix_row_broadcast_reduces_gradient_to_original_shape():
+    row = Tensor([[1.0, 2.0]], requires_grad=True)
+    matrix = Tensor([[3.0, 4.0], [5.0, 6.0]], requires_grad=True)
+    (row + matrix).backward([[1.0, 2.0], [3.0, 4.0]])
+    assert row.grad == [[4.0, 6.0]]
+    assert matrix.grad == [[1.0, 2.0], [3.0, 4.0]]

@@ -69,10 +69,18 @@ def _sum_all(value):
 
 
 def _reduce_broadcast(gradient, original):
-    """Reduce a broadcasted gradient back to the original scalar/matrix shape."""
+    """Sum broadcast axes so a gradient matches its input's original shape."""
     if not isinstance(original, np.ndarray):
         return _sum_all(gradient)
-    return gradient
+    result = np.asarray(gradient, dtype=np.float64)
+    while result.ndim > original.ndim:
+        result = result.sum(axis=0)
+    for axis, size in enumerate(original.shape):
+        if size == 1 and result.shape[axis] != 1:
+            result = result.sum(axis=axis, keepdims=True)
+    if result.shape != original.shape:
+        raise ValueError("Gradient shapes do not match the original tensor.")
+    return result
 
 
 def _grad_add(left, right):

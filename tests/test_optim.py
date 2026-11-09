@@ -2,6 +2,7 @@
 
 import math
 
+import numpy as np
 import pytest
 
 from astratensor import Tensor
@@ -70,7 +71,7 @@ def test_adam_zero_grad_clears_parameters_without_resetting_moments():
     optimizer.zero_grad()
 
     assert parameter.grad == [[0.0, 0.0]]
-    assert optimizer.first_moment[id(parameter)] == moments_before
+    assert np.array_equal(optimizer.first_moment[id(parameter)], moments_before)
 
 
 @pytest.mark.parametrize("learning_rate", [0.0, -0.1])
@@ -91,3 +92,17 @@ def test_sgd_rejects_non_positive_learning_rate(learning_rate):
 def test_adam_rejects_invalid_hyperparameters(kwargs):
     with pytest.raises(ValueError):
         Adam([Tensor(1.0)], **kwargs)
+
+
+def test_adam_updates_matrix_parameters_and_uses_numpy_moments():
+    parameter = Tensor([[1.0, -1.0], [2.0, -2.0]], requires_grad=True)
+    parameter.grad = [[0.5, -0.5], [1.0, -1.0]]
+    optimizer = Adam([parameter], lr=0.1)
+    optimizer.step()
+    assert parameter.data == [
+        [pytest.approx(0.9), pytest.approx(-0.9)],
+        [pytest.approx(1.9), pytest.approx(-1.9)],
+    ]
+    assert isinstance(optimizer.first_moment[id(parameter)], np.ndarray)
+    assert optimizer.first_moment[id(parameter)].dtype == np.float64
+    assert optimizer.first_moment[id(parameter)].shape == parameter.shape

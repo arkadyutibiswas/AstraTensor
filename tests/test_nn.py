@@ -53,3 +53,13 @@ def test_adam_updates_scalar_parameter():
 def test_mse_rejects_wrong_shape():
     with pytest.raises(ValueError, match="shapes must match"):
         MSELoss()(Tensor([[1.0, 2.0]]), [[1.0]])
+
+
+def test_linear_bias_broadcast_uses_autograd_reduction():
+    layer = Linear(2, 2, seed=3)
+    layer.weight.data = [[1.0, 0.0], [0.0, 1.0]]
+    layer.bias.data = [[0.5, -0.5]]
+    result = layer(Tensor([[1.0, 2.0], [3.0, 4.0]]))
+    assert result.data == [[1.5, 1.5], [3.5, 3.5]]
+    result.backward([[1.0, 2.0], [3.0, 4.0]])
+    assert layer.bias.grad == [[4.0, 6.0]]

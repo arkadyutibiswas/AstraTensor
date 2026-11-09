@@ -2,7 +2,7 @@
 
 ## Status
 
-Design and compatibility contract. The production `Tensor` remains list-backed until the integration tests prove that the new representation preserves the public API and autograd semantics.
+Stages A–D are implemented on the feature branch. Tensor matrices and gradients use owned NumPy arrays internally; public `data` and `grad` remain detached lists. Layers, losses, SGD, and Adam now operate on internal arrays. Stage E validation and performance measurement remain.
 
 ## Why change storage?
 
@@ -29,22 +29,24 @@ The measurements identify conversion overhead as a candidate bottleneck; they do
 - Add copy and detached list conversion.
 - Test ownership, invalid shapes, finite values, and copy isolation.
 
-### Stage B — Tensor internal representation
+### Stage B — Tensor internal representation (completed)
 
 - Add private matrix storage and a single normalization boundary.
 - Keep public `data` and `grad` compatibility properties.
 - Add internal array accessors used only by engine operations.
 - Preserve scalar representation and avoid converting matrices to lists inside each operation.
 
-### Stage C — autograd operations
+### Stage C — autograd operations (completed)
 
 - Port add, multiply, matmul, ReLU, and gradient accumulation to array operations.
 - Keep topological traversal iterative.
 - Add finite-difference checks and tests for shared subgraphs, repeated backward calls, scalar broadcasting, and shape errors.
 
-### Stage D — layers and optimizers
+### Stage D — layers and optimizers (implemented; validation pending)
 
-- Port Linear bias addition, MSE, cross-entropy, SGD, and Adam to the internal representation.
+- Use Tensor broadcasting for Linear bias addition and reduce broadcast gradients to the original shape.
+- Vectorize MSE and cross-entropy forward/backward calculations while retaining AstraTensor's custom backward callbacks.
+- Store SGD/Adam parameter updates and Adam moment buffers in internal float64 arrays.
 - Ensure optimizer state uses the same dtype and shape as parameters.
 - Preserve the public parameter and gradient interfaces.
 
