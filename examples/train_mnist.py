@@ -9,7 +9,7 @@ import random
 from astratensor import Tensor
 from astratensor.nn import CrossEntropyLoss, Linear, ReLU
 from astratensor.optim import Adam
-from mnist_data import MNISTDataset, load_mnist
+from mnist_data import MNISTDataset, limit_dataset, load_mnist
 
 
 class DigitMLP:
@@ -94,20 +94,6 @@ def _smoke_datasets():
     return build(3), build(1)
 
 
-def _limit_dataset(dataset, limit):
-    if limit is None:
-        return dataset
-    if limit <= 0:
-        raise ValueError("Dataset limits must be positive.")
-    count = min(limit, len(dataset))
-    return MNISTDataset(
-        dataset.images[:count * dataset.feature_count],
-        dataset.labels[:count],
-        dataset.rows,
-        dataset.columns,
-    )
-
-
 def main():
     parser = argparse.ArgumentParser(description="Train AstraTensor on MNIST.")
     parser.add_argument("--data-dir", default="data/mnist")
@@ -132,10 +118,12 @@ def main():
         print("AstraTensor | MNIST pipeline smoke test (synthetic fixture)")
     else:
         training, test = load_mnist(args.data_dir)
-        training = _limit_dataset(training, args.limit_train)
-        test = _limit_dataset(test, args.limit_test)
+        try:
+            training = limit_dataset(training, args.limit_train)
+            test = limit_dataset(test, args.limit_test)
+        except (TypeError, ValueError) as exc:
+            parser.error(str(exc))
         epochs = args.epochs
-        print("AstraTensor | MNIST handwritten-digit classification")
 
     print(
         f"Train: {len(training)} | Test: {len(test)} | "

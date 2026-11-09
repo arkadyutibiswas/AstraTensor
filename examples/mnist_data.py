@@ -5,6 +5,7 @@ expanding all 60,000 images into millions of Python float objects at once.
 """
 from dataclasses import dataclass
 import gzip
+from numbers import Integral
 from pathlib import Path
 import struct
 import urllib.request
@@ -31,15 +32,23 @@ class MNISTDataset:
     def __post_init__(self):
         if not isinstance(self.images, bytes):
             raise TypeError("images must be raw bytes.")
-        if not isinstance(self.rows, int) or not isinstance(self.columns, int):
+        if (not isinstance(self.rows, int) or isinstance(self.rows, bool)
+                or not isinstance(self.columns, int) or isinstance(self.columns, bool)):
             raise TypeError("Image dimensions must be integers.")
         if self.rows <= 0 or self.columns <= 0:
             raise ValueError("Image dimensions must be positive.")
-        if len(self.images) != len(self.labels) * self.rows * self.columns:
+        try:
+            labels = tuple(self.labels)
+        except TypeError as exc:
+            raise TypeError("labels must be an iterable of integer class labels.") from exc
+        if not labels:
+            raise ValueError("A dataset must contain at least one sample.")
+        if len(self.images) != len(labels) * self.rows * self.columns:
             raise ValueError("Image bytes and label count do not match.")
-        if any(not isinstance(label, int) or isinstance(label, bool)
-               or not 0 <= label <= 9 for label in self.labels):
+        if any(not isinstance(label, Integral) or isinstance(label, (bool,))
+               or not 0 <= int(label) <= 9 for label in labels):
             raise ValueError("MNIST labels must be integers from 0 through 9.")
+        object.__setattr__(self, "labels", tuple(int(label) for label in labels))
 
     def __len__(self):
         return len(self.labels)
@@ -48,22 +57,53 @@ class MNISTDataset:
     def feature_count(self):
         return self.rows * self.columns
 
+    @staticmethod
+    def _validate_index(index):
+        if not isinstance(index, Integral) or isinstance(index, bool):
+            raise TypeError("Dataset indices must be integers.")
+        index = int(index)
+        if index < 0:
+            raise IndexError("Dataset index cannot be negative.")
+        return index
+
     def labels_for(self, indices):
-        return [self.labels[index] for index in indices]
+        result = []
+        for index in indices:
+            index = self._validate_index(index)
+            if index >= len(self):
+                raise IndexError("Dataset index is outside the dataset.")
+            result.append(self.labels[index])
+        return result
 
     def batch(self, indices):
         """Return selected images as flattened float rows normalized to [0, 1]."""
         width = self.feature_count
         result = []
         for index in indices:
-            if not isinstance(index, int) or isinstance(index, bool):
-                raise TypeError("Batch indices must be integers.")
-            if index < 0 or index >= len(self):
-                raise IndexError("Batch index is outside the dataset.")
+            index = self._validate_index(index)
+            if index >= len(self):
+                raise IndexError("Dataset index is outside the dataset.")
             start = index * width
             pixels = self.images[start:start + width]
             result.append([pixel / 255.0 for pixel in pixels])
         return result
+
+
+def limit_dataset(dataset, limit):
+    """Return the first limit samples, or the original dataset when limit is None."""
+    if limit is None:
+        return dataset
+    if not isinstance(limit, int) or isinstance(limit, bool):
+        raise TypeError("Dataset limits must be integers.")
+    if limit <= 0:
+        raise ValueError("Dataset limits must be positive.")
+    count = min(limit, len(dataset))
+    return MNISTDataset(
+        dataset.images[:count * dataset.feature_count],
+        dataset.labels[:count],
+        dataset.rows,
+        dataset.columns,
+    )
 
 
 def _download_if_missing(directory, filename):

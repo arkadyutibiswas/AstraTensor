@@ -4,7 +4,7 @@ import struct
 
 import pytest
 
-from examples.mnist_data import load_split
+from examples.mnist_data import MNISTDataset, limit_dataset, load_split
 
 
 def _write_images(path, images, rows=28, columns=28, magic=2051):
@@ -79,3 +79,38 @@ def test_batch_rejects_out_of_range_indices(tmp_path):
 
     with pytest.raises(IndexError):
         dataset.batch([1])
+
+
+@pytest.mark.parametrize("indices", [[-1], [1]])
+def test_batch_and_label_lookup_reject_out_of_range_indices(tmp_path, indices):
+    image_path = tmp_path / "images.gz"
+    label_path = tmp_path / "labels.gz"
+    _write_images(image_path, [bytearray(28 * 28)])
+    _write_labels(label_path, [0])
+    dataset = load_split(image_path, label_path)
+
+    with pytest.raises(IndexError):
+        dataset.batch(indices)
+    with pytest.raises(IndexError):
+        dataset.labels_for(indices)
+
+
+def test_dataset_rejects_empty_samples_and_boolean_dimensions():
+    with pytest.raises(ValueError, match="at least one sample"):
+        MNISTDataset(b"", ())
+    with pytest.raises(TypeError, match="dimensions must be integers"):
+        MNISTDataset(bytes(28), (0,), rows=True, columns=28)
+
+
+def test_limit_dataset_uses_consistent_positive_limits():
+    dataset = MNISTDataset(bytes(3 * 28 * 28), (0, 1, 2))
+
+    assert limit_dataset(dataset, None) is dataset
+    assert len(limit_dataset(dataset, 2)) == 2
+    assert len(limit_dataset(dataset, 10)) == 3
+    with pytest.raises(ValueError, match="positive"):
+        limit_dataset(dataset, 0)
+    with pytest.raises(ValueError, match="positive"):
+        limit_dataset(dataset, -1)
+    with pytest.raises(TypeError, match="integers"):
+        limit_dataset(dataset, True)
