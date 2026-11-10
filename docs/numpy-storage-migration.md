@@ -4,7 +4,7 @@
 
 Stages A–D are implemented and merged into `main`. Tensor matrices and gradients use owned NumPy arrays internally; public `data` and `grad` remain detached lists. Layers, losses, SGD, and Adam operate on internal arrays.
 
-Stage E's functional validation is complete for the current integration: the existing CI jobs passed, and the full MNIST benchmark completed successfully with exact reported metric parity against the independent PyTorch comparison. Performance measurements are recorded below as preliminary single-run observations; they are not a statistically robust speed claim.
+The migration's functional validation was recorded at commit `400ed8c9f09e643a3c4cf7044871c983447e128c`. It included passing CI jobs and a full-dataset MNIST run with matching reported metrics in the controlled PyTorch comparison. That benchmark predates the later correctness-hardening work; it is historical evidence, not a fresh full-dataset run of the current PR head. Performance measurements are recorded below as preliminary single-run observations, not as a statistically robust speed claim.
 
 ## Why change storage?
 
