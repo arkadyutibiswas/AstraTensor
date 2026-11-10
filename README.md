@@ -44,7 +44,7 @@ The same report records a controlled PyTorch comparison initialized from the Odd
 
 ## Requirements
 
-- Python 3.9 or later
+- Python 3.9 or later (CI currently tests 3.9, 3.10, and 3.11)
 - NumPy 1.23 or later
 - A C/C++ compiler to build the native extension
 
