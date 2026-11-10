@@ -55,7 +55,6 @@ def _matrix_matmul(left, right):
     global _NATIVE_MATMUL, _BACKEND_CHECKED
 
     if not _BACKEND_CHECKED:
-        _BACKEND_CHECKED = True
         try:
             from .backend import matmul as native_matmul
         except ImportError as exc:
@@ -67,6 +66,11 @@ def _matrix_matmul(left, right):
             )
         else:
             _NATIVE_MATMUL = native_matmul
+
+        # Mark resolution complete only after import/fallback handling finishes.
+        # Unexpected import errors or warnings promoted to exceptions must not
+        # leave the module in a falsely initialized state.
+        _BACKEND_CHECKED = True
 
     if _NATIVE_MATMUL is None:
         return np.matmul(left, right)
