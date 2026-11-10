@@ -21,6 +21,16 @@ py::array_t<double> as_matrix(const py::handle &value)
     if (!array || array.ndim() != 2) {
         throw std::invalid_argument("Expected a rectangular numeric 2-D matrix.");
     }
+
+    // C-style contiguity does not guarantee that a NumPy data pointer is
+    // aligned for double access. The native kernel dereferences double*.
+    if (!array.attr("flags").attr("aligned").cast<bool>()) {
+        array = py::array_t<double,
+            py::array::c_style | py::array::forcecast>::ensure(array.attr("copy")());
+        if (!array) {
+            throw std::invalid_argument("Could not create an aligned matrix copy.");
+        }
+    }
     return array;
 }
 
