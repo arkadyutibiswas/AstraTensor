@@ -58,11 +58,12 @@ class ReLU(Module):
 
 
 class MSELoss(Module):
-    """Mean squared error over all elements, with a custom backward callback."""
+    """Mean squared error with gradients for both differentiable operands."""
     def __call__(self, prediction, target):
         if not isinstance(prediction, Tensor):
             prediction = Tensor(prediction)
-        target_data = target._data if isinstance(target, Tensor) else target
+        target_tensor = target if isinstance(target, Tensor) else None
+        target_data = target_tensor._data if target_tensor is not None else target
         try:
             target_array = (
                 np.asarray(target_data, dtype=np.float64)
@@ -83,12 +84,22 @@ class MSELoss(Module):
             count = 1
             loss_value = difference * difference
 
-        output = Tensor(loss_value, prediction.requires_grad, (prediction,), "mse")
+        children = (prediction, target_tensor) if target_tensor is not None else (prediction,)
+        requires_grad = prediction.requires_grad or (
+            target_tensor is not None and target_tensor.requires_grad
+        )
+        output = Tensor(loss_value, requires_grad, children, "mse")
 
         def backward():
+            scale = (2.0 / count) * output._grad
             if prediction.requires_grad:
-                contribution = (2.0 / count) * difference * output._grad
-                prediction._grad = _grad_add(prediction._grad, contribution)
+                prediction._grad = _grad_add(
+                    prediction._grad, difference * scale
+                )
+            if target_tensor is not None and target_tensor.requires_grad:
+                target_tensor._grad = _grad_add(
+                    target_tensor._grad, -difference * scale
+                )
 
         output._backward = backward
         return output
