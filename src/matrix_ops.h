@@ -1,5 +1,5 @@
-#ifndef ASTRATENSOR_MATRIX_OPS_H
-#define ASTRATENSOR_MATRIX_OPS_H
+#ifndef ODDLYTYPED_MATRIX_OPS_H
+#define ODDLYTYPED_MATRIX_OPS_H
 
 #include <stddef.h>
 
@@ -7,10 +7,10 @@
 extern "C" {
 #endif
 
-/* Contiguous row-major matrices. Caller frees the result with ast_free(). */
-double *ast_matmul(const double *a, const double *b,
+/* Contiguous row-major matrices. Caller frees the result with oddlytyped_free(). */
+double *oddlytyped_matmul(const double *a, const double *b,
                    size_t rows_a, size_t cols_a, size_t cols_b);
-void ast_free(void *ptr);
+void oddlytyped_free(void *ptr);
 
 #ifdef __cplusplus
 }
