@@ -33,6 +33,19 @@ def test_matmul_handles_non_contiguous_numpy_views():
     np.testing.assert_allclose(matmul(left, right), left @ right, atol=1e-12)
 
 
+def test_matmul_copies_unaligned_contiguous_numpy_inputs():
+    left_buffer = bytearray(1 + 4 * np.dtype(np.float64).itemsize)
+    right_buffer = bytearray(1 + 4 * np.dtype(np.float64).itemsize)
+    left = np.ndarray((2, 2), dtype=np.float64, buffer=left_buffer, offset=1)
+    right = np.ndarray((2, 2), dtype=np.float64, buffer=right_buffer, offset=1)
+    left[:] = [[1.0, 2.0], [3.0, 4.0]]
+    right[:] = [[5.0, 6.0], [7.0, 8.0]]
+
+    assert left.flags.c_contiguous and not left.flags.aligned
+    assert right.flags.c_contiguous and not right.flags.aligned
+    np.testing.assert_allclose(matmul(left, right), left @ right, atol=1e-12)
+
+
 def test_matmul_rejects_incompatible_dimensions():
     with pytest.raises(ValueError, match="incompatible"):
         matmul([[1.0, 2.0]], [[1.0, 2.0]])

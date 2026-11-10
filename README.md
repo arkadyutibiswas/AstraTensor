@@ -44,7 +44,7 @@ The same report records a controlled PyTorch comparison initialized from the Odd
 
 ## Requirements
 
-- Python 3.9 or later
+- Python 3.9 or later (CI currently tests 3.9, 3.10, and 3.11)
 - NumPy 1.23 or later
 - A C/C++ compiler to build the native extension
 
@@ -55,7 +55,7 @@ From the repository root:
 ```bash
 python -m pip install --upgrade pip
 python -m pip install -e .
-python -m pip install pytest
+python -m pip install pybind11 pytest
 python setup.py build_ext --inplace --force
 python -m pytest -q
 ```

@@ -41,12 +41,15 @@ def _zeros_like(value):
     return np.zeros_like(value, dtype=np.float64) if isinstance(value, np.ndarray) else 0.0
 
 
+def _copy_value(value):
+    return value.copy() if isinstance(value, np.ndarray) else value
+
+
 def _transpose(value):
     return value.T
 
 
-# Resolve the optional extension once. Repeated matrix operations should not
-# repeatedly attempt an import when the native module is unavailable.
+# Resolve the optional extension once; avoid repeated imports in the hot path.
 _NATIVE_MATMUL = None
 _BACKEND_CHECKED = False
 
@@ -58,9 +61,8 @@ def _matrix_matmul(left, right):
         try:
             from .backend import matmul as native_matmul
         except ModuleNotFoundError as exc:
-            # Fall back only when the extension itself is absent. An import
-            # failure inside an installed backend can indicate a broken build
-            # or missing dependency and must remain visible to the caller.
+            # Fall back only when the extension itself is absent. A missing
+            # dependency inside an installed backend must remain visible.
             if exc.name != f"{__package__}.backend":
                 raise
             warnings.warn(
@@ -72,9 +74,7 @@ def _matrix_matmul(left, right):
         else:
             _NATIVE_MATMUL = native_matmul
 
-        # Mark resolution complete only after import/fallback handling finishes.
-        # Unexpected import errors or warnings promoted to exceptions must not
-        # leave the module in a falsely initialized state.
+        # Mark resolution complete only after import/fallback handling succeeds.
         _BACKEND_CHECKED = True
 
     if _NATIVE_MATMUL is None:
@@ -126,8 +126,7 @@ class Tensor:
     """A scalar or 2-D matrix with reverse-mode automatic differentiation.
 
     Matrix data and gradients are stored internally as NumPy float64 arrays.
-    The public data/grad properties return detached Python lists to preserve
-    the original API while the engine avoids list conversions between ops.
+    The public data/grad properties return detached Python lists.
     """
 
     def __init__(self, data, requires_grad=False, _children=(), _op=""):
@@ -201,22 +200,26 @@ class Tensor:
 
     def __mul__(self, other):
         other = self._coerce(other)
+        # Backward must use the values from this forward pass, even if callers
+        # later mutate either tensor through its public data setter.
+        left_value = _copy_value(self._data)
+        right_value = _copy_value(other._data)
         output = Tensor(
-            _elementwise(self._data, other._data, np.multiply),
+            _elementwise(left_value, right_value, np.multiply),
             self.requires_grad or other.requires_grad,
             (self, other), "multiply",
         )
 
         def backward():
             if self.requires_grad:
-                contribution = _elementwise(output._grad, other._data, np.multiply)
+                contribution = _elementwise(output._grad, right_value, np.multiply)
                 self._grad = _grad_add(
-                    self._grad, _reduce_broadcast(contribution, self._data)
+                    self._grad, _reduce_broadcast(contribution, left_value)
                 )
             if other.requires_grad:
-                contribution = _elementwise(output._grad, self._data, np.multiply)
+                contribution = _elementwise(output._grad, left_value, np.multiply)
                 other._grad = _grad_add(
-                    other._grad, _reduce_broadcast(contribution, other._data)
+                    other._grad, _reduce_broadcast(contribution, right_value)
                 )
 
         output._backward = backward
@@ -233,18 +236,21 @@ class Tensor:
                 f"Incompatible matrix shapes: {self.shape} and {other.shape}."
             )
 
+        # Snapshot operands so later data mutation cannot change this graph's gradients.
+        left_value = self._data.copy()
+        right_value = other._data.copy()
         output = Tensor(
-            _matrix_matmul(self._data, other._data),
+            _matrix_matmul(left_value, right_value),
             self.requires_grad or other.requires_grad,
             (self, other), "matmul",
         )
 
         def backward():
             if self.requires_grad:
-                contribution = _matrix_matmul(output._grad, _transpose(other._data))
+                contribution = _matrix_matmul(output._grad, _transpose(right_value))
                 self._grad = _grad_add(self._grad, contribution)
             if other.requires_grad:
-                contribution = _matrix_matmul(_transpose(self._data), output._grad)
+                contribution = _matrix_matmul(_transpose(left_value), output._grad)
                 other._grad = _grad_add(other._grad, contribution)
 
         output._backward = backward
@@ -253,18 +259,20 @@ class Tensor:
     def relu(self):
         """Apply max(0, x) elementwise."""
         if isinstance(self._data, np.ndarray):
+            activation_mask = self._data > 0.0
             result = np.maximum(self._data, 0.0)
         else:
+            activation_mask = self._data > 0.0
             result = max(0.0, self._data)
         output = Tensor(result, self.requires_grad, (self,), "relu")
 
         def backward():
             if not self.requires_grad:
                 return
-            if isinstance(self._data, np.ndarray):
-                contribution = output._grad * (self._data > 0.0)
+            if isinstance(activation_mask, np.ndarray):
+                contribution = output._grad * activation_mask
             else:
-                contribution = output._grad if self._data > 0.0 else 0.0
+                contribution = output._grad if activation_mask else 0.0
             self._grad = _grad_add(self._grad, contribution)
 
         output._backward = backward
@@ -300,7 +308,6 @@ class Tensor:
                 if parent not in visited:
                     stack.append((parent, False))
 
-        # Intermediate gradients reset per pass; leaf gradients accumulate.
         for node in topological:
             if node._prev:
                 node._grad = _zeros_like(node._data)

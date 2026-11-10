@@ -42,8 +42,7 @@ def test_relu_gradient_is_zero_for_non_positive_inputs():
 def test_shared_subgraph_accumulates_both_paths():
     x = Tensor(2.0, requires_grad=True)
     shared = x * x
-    result = shared + shared
-    result.backward()
+    (shared + shared).backward()
     assert x.grad == pytest.approx(8.0)
 
 
@@ -67,3 +66,35 @@ def test_backward_rejects_wrong_gradient_shape():
     x = Tensor([[1.0, 2.0]], requires_grad=True)
     with pytest.raises(ValueError, match="match output shape"):
         x.backward([[1.0]])
+
+
+def test_multiply_backward_uses_forward_values_after_data_mutation():
+    left = Tensor(2.0, requires_grad=True)
+    right = Tensor(3.0, requires_grad=True)
+    output = left * right
+    left.data = 100.0
+    right.data = 200.0
+    output.backward()
+    assert left.grad == pytest.approx(3.0)
+    assert right.grad == pytest.approx(2.0)
+
+
+def test_matmul_backward_uses_forward_values_after_data_mutation():
+    left = Tensor([[1.0, 2.0]], requires_grad=True)
+    right = Tensor([[3.0], [4.0]], requires_grad=True)
+    output = left @ right
+    left.data = [[10.0, 20.0]]
+    right.data = [[30.0], [40.0]]
+    output.backward([[1.0]])
+    assert output.data == [[11.0]]
+    assert left.grad == [[3.0, 4.0]]
+    assert right.grad == [[1.0], [2.0]]
+
+
+def test_relu_backward_uses_forward_activation_mask_after_data_mutation():
+    values = Tensor(-1.0, requires_grad=True)
+    output = values.relu()
+    values.data = 2.0
+    output.backward()
+    assert output.item() == 0.0
+    assert values.grad == 0.0

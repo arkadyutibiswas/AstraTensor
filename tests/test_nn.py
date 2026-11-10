@@ -16,12 +16,35 @@ def test_linear_forward_and_bias_gradient():
     assert layer.bias.grad == [[3.0]]
 
 
-def test_mse_loss_value_and_gradient():
+def test_mse_loss_value_and_prediction_gradient():
     prediction = Tensor([[2.0, 4.0]], requires_grad=True)
     loss = MSELoss()(prediction, [[1.0, 2.0]])
     assert loss.item() == pytest.approx(2.5)
     loss.backward()
     assert prediction.grad == [[1.0, 2.0]]
+
+
+def test_mse_loss_computes_gradient_for_tensor_target():
+    prediction = Tensor([[2.0, 4.0]], requires_grad=True)
+    target = Tensor([[1.0, 2.0]], requires_grad=True)
+    loss = MSELoss()(prediction, target)
+    loss.backward()
+    assert prediction.grad == [[1.0, 2.0]]
+    assert target.grad == [[-1.0, -2.0]]
+
+
+def test_mse_loss_tracks_target_when_prediction_is_constant():
+    target = Tensor(2.0, requires_grad=True)
+    loss = MSELoss()(1.0, target)
+    assert loss.requires_grad
+    loss.backward()
+    assert target.grad == pytest.approx(2.0)
+
+
+def test_mse_loss_same_tensor_as_prediction_and_target_cancels_gradient():
+    value = Tensor(3.0, requires_grad=True)
+    MSELoss()(value, value).backward()
+    assert value.grad == pytest.approx(0.0)
 
 
 def test_cross_entropy_value_and_gradient():
