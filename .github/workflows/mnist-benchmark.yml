@@ -33,9 +33,9 @@ jobs:
     timeout-minutes: 90
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: "3.11"
           cache: pip
@@ -96,7 +96,7 @@ jobs:
           python examples/compare_mnist.py "${args[@]}" 2>&1 | tee benchmark-results/comparison-results.txt
       - name: Upload training metrics
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: oddlytyped-mnist-results
           path: benchmark-results/*.txt

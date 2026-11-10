@@ -28,9 +28,16 @@ Matrix values and gradients are stored internally as contiguous NumPy float64 ar
 - SGD and Adam
 - MNIST loading, mini-batch training, and evaluation
 
-## Historical MNIST result
+## Latest full-dataset MNIST validation
 
-A full-dataset experiment recorded in [the NumPy storage migration report](docs/numpy-storage-migration.md) trained a 784 → 128 → 10 model for three epochs using all 60,000 training samples and all 10,000 test samples.
+[GitHub Actions benchmark run #6](https://github.com/arkadyutibiswas/OddlyTyped/actions/runs/42807216471) completed successfully on commit `33cfff4a769d0a0ca8140fffc7aaa89888516b11`, after the correctness and native-input-alignment fixes.
+
+- Dataset: all 60,000 training samples and all 10,000 test samples
+- Model: 784 → 128 → 10; float64
+- Optimizer: Adam (learning rate 0.001)
+- Epochs: 3; batch size: 128
+- Final test accuracy: **96.76%**
+- Final test loss: **0.1081**
 
 | Epoch | Train loss | Train accuracy | Test loss | Test accuracy |
 |---|---:|---:|---:|---:|
@@ -38,9 +45,9 @@ A full-dataset experiment recorded in [the NumPy storage migration report](docs/
 | 2 | 0.1640 | 95.32% | 0.1429 | 95.53% |
 | 3 | 0.1178 | 96.61% | 0.1081 | 96.76% |
 
-The same report records a controlled PyTorch comparison initialized from the OddlyTyped weights. It reported matching train/test losses and accuracies at each epoch, with a final test-accuracy difference of **+0.00 percentage points**.
+The run also compared OddlyTyped with PyTorch using the same architecture, precision, optimizer settings, and initial weights copied from OddlyTyped. The reported train/test losses and accuracies matched at each epoch; final test-accuracy delta was **+0.00 percentage points**. The single-run CPU timings were 28.24 s for OddlyTyped and 27.73 s for PyTorch (1.02× ratio). This is one measurement, not a statistically robust performance result, and no speed advantage is claimed.
 
-**These are historical results from the experiment recorded at commit `400ed8c9f09e643a3c4cf7044871c983447e128c`.** They predate subsequent validation-hardening changes and are not a fresh run of the current code. See the report for the configuration and caveats. No speed advantage is claimed from these results.
+The run's uploaded artifact contains the training metrics, controlled comparison, and matrix-multiplication boundary measurements.
 
 ## Requirements
 
@@ -82,7 +89,7 @@ Use `--data-dir`, `--hidden-size`, `--limit-train`, and `--limit-test` to change
 
 ## PyTorch comparison tests
 
-PyTorch is used only as an independent reference in the parity tests. It is not a runtime dependency.
+PyTorch is used only as an independent reference in the parity tests and benchmark. It is not a runtime dependency.
 
 ```bash
 python -m pip install torch
