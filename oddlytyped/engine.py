@@ -57,7 +57,12 @@ def _matrix_matmul(left, right):
     if not _BACKEND_CHECKED:
         try:
             from .backend import matmul as native_matmul
-        except ImportError as exc:
+        except ModuleNotFoundError as exc:
+            # Fall back only when the extension itself is absent. An import
+            # failure inside an installed backend can indicate a broken build
+            # or missing dependency and must remain visible to the caller.
+            if exc.name != f"{__package__}.backend":
+                raise
             warnings.warn(
                 "OddlyTyped native backend is unavailable; using NumPy "
                 f"matrix multiplication instead ({exc}).",
