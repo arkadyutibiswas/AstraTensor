@@ -49,6 +49,7 @@ def _transpose(value):
     return value.T
 
 
+# Resolve the optional extension once; avoid repeated imports in the hot path.
 _NATIVE_MATMUL = None
 _BACKEND_CHECKED = False
 
@@ -60,6 +61,8 @@ def _matrix_matmul(left, right):
         try:
             from .backend import matmul as native_matmul
         except ModuleNotFoundError as exc:
+            # Fall back only when the extension itself is absent. A missing
+            # dependency inside an installed backend must remain visible.
             if exc.name != f"{__package__}.backend":
                 raise
             warnings.warn(
@@ -71,6 +74,7 @@ def _matrix_matmul(left, right):
         else:
             _NATIVE_MATMUL = native_matmul
 
+        # Mark resolution complete only after import/fallback handling succeeds.
         _BACKEND_CHECKED = True
 
     if _NATIVE_MATMUL is None:
@@ -104,6 +108,7 @@ def _reduce_broadcast(gradient, original):
 
 
 def _grad_add(left, right):
+    # Convert matrix gradients before addition; Python lists would concatenate.
     left_is_matrix = isinstance(left, (list, tuple, np.ndarray))
     right_is_matrix = isinstance(right, (list, tuple, np.ndarray))
     if left_is_matrix or right_is_matrix:
@@ -134,6 +139,7 @@ class Tensor:
 
     @property
     def data(self):
+        """Return a scalar or detached nested-list matrix."""
         return _public(self._data)
 
     @data.setter
@@ -145,6 +151,7 @@ class Tensor:
 
     @property
     def grad(self):
+        """Return a scalar or detached nested-list gradient."""
         return _public(self._grad)
 
     @grad.setter
@@ -156,6 +163,7 @@ class Tensor:
 
     @property
     def shape(self):
+        """Return () for scalars or (rows, columns) for matrices."""
         return _shape(self._data)
 
     @property
@@ -163,6 +171,7 @@ class Tensor:
         return not isinstance(self._data, np.ndarray)
 
     def zero_grad(self):
+        """Clear this tensor's accumulated gradient."""
         self._grad = _zeros_like(self._data)
 
     def _coerce(self, other):
@@ -191,6 +200,8 @@ class Tensor:
 
     def __mul__(self, other):
         other = self._coerce(other)
+        # Backward must use the values from this forward pass, even if callers
+        # later mutate either tensor through its public data setter.
         left_value = _copy_value(self._data)
         right_value = _copy_value(other._data)
         output = Tensor(
@@ -225,6 +236,7 @@ class Tensor:
                 f"Incompatible matrix shapes: {self.shape} and {other.shape}."
             )
 
+        # Snapshot operands so later data mutation cannot change this graph's gradients.
         left_value = self._data.copy()
         right_value = other._data.copy()
         output = Tensor(
@@ -309,6 +321,7 @@ class Tensor:
             node._backward()
 
     def item(self):
+        """Return a scalar value; reject matrices to avoid ambiguous behavior."""
         if not self.is_scalar:
             raise ValueError("item() is only available for scalar tensors.")
         return self._data
