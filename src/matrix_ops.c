@@ -4,7 +4,7 @@
 
 /* i-k-j order reuses A[i,k] and streams through contiguous B[k,:] and C[i,:].
  * The inner loop is unrolled by four, with a scalar tail for remaining cols. */
-double *ast_matmul(const double *a, const double *b,
+double *oddlytyped_matmul(const double *a, const double *b,
                    size_t rows_a, size_t cols_a, size_t cols_b)
 {
     size_t i;
@@ -45,7 +45,7 @@ double *ast_matmul(const double *a, const double *b,
     return result;
 }
 
-void ast_free(void *ptr)
+void oddlytyped_free(void *ptr)
 {
     free(ptr);
 }

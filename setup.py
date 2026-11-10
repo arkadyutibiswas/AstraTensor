@@ -12,10 +12,8 @@ if os.name == "nt":
     compile_args = ["/O2", "/W4"]
 else:
     # Optimize hot loops without relaxing IEEE floating-point semantics.
-    compile_args = [
-        "-O3", "-funroll-loops",
-        "-Wall", "-Wextra", "-Wpedantic", "-Werror",
-    ]
+    # Keep warnings enabled, but do not make new compiler warnings fatal to users.
+    compile_args = ["-O3", "-funroll-loops", "-Wall", "-Wextra", "-Wpedantic"]
 
 extension = Extension(
     name="oddlytyped.backend",
@@ -28,7 +26,7 @@ extension = Extension(
 setup(
     name="oddlytyped",
     version="0.2.0",
-    description="OddlyTyped: an educational deep-learning framework with a native C backend",
+    description="OddlyTyped: an educational deep-learning framework with a native C matmul backend",
     long_description=README,
     long_description_content_type="text/markdown",
     license="MIT",

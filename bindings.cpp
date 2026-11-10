@@ -10,8 +10,8 @@
 namespace py = pybind11;
 
 namespace {
-struct AstDeleter {
-    void operator()(double *ptr) const noexcept { ast_free(ptr); }
+struct OddlyTypedDeleter {
+    void operator()(double *ptr) const noexcept { oddlytyped_free(ptr); }
 };
 
 py::array_t<double> as_matrix(const py::handle &value)
@@ -41,8 +41,8 @@ py::array_t<double> matmul(const py::object &left, const py::object &right)
     }
 
     // RAII guarantees C-owned memory is released even if NumPy allocation throws.
-    std::unique_ptr<double, AstDeleter> raw(
-        ast_matmul(a.data(), b.data(), rows_a, cols_a, cols_b));
+    std::unique_ptr<double, OddlyTypedDeleter> raw(
+        oddlytyped_matmul(a.data(), b.data(), rows_a, cols_a, cols_b));
     if (!raw) {
         throw std::bad_alloc();
     }

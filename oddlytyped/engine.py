@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from typing import Callable
+import warnings
 
 import numpy as np
 
@@ -44,13 +45,41 @@ def _transpose(value):
     return value.T
 
 
+# Resolve the optional extension once. Repeated matrix operations should not
+# repeatedly attempt an import when the native module is unavailable.
+_NATIVE_MATMUL = None
+_BACKEND_CHECKED = False
+
+
 def _matrix_matmul(left, right):
-    try:
-        from .backend import matmul as native_matmul
-    except ImportError:
-        # Use NumPy when the compiled extension is unavailable.
+    global _NATIVE_MATMUL, _BACKEND_CHECKED
+
+    if not _BACKEND_CHECKED:
+        try:
+            from .backend import matmul as native_matmul
+        except ModuleNotFoundError as exc:
+            # Fall back only when the extension itself is absent. An import
+            # failure inside an installed backend can indicate a broken build
+            # or missing dependency and must remain visible to the caller.
+            if exc.name != f"{__package__}.backend":
+                raise
+            warnings.warn(
+                "OddlyTyped native backend is unavailable; using NumPy "
+                f"matrix multiplication instead ({exc}).",
+                RuntimeWarning,
+                stacklevel=2,
+            )
+        else:
+            _NATIVE_MATMUL = native_matmul
+
+        # Mark resolution complete only after import/fallback handling finishes.
+        # Unexpected import errors or warnings promoted to exceptions must not
+        # leave the module in a falsely initialized state.
+        _BACKEND_CHECKED = True
+
+    if _NATIVE_MATMUL is None:
         return np.matmul(left, right)
-    return native_matmul(left, right)
+    return _NATIVE_MATMUL(left, right)
 
 
 def _elementwise(left, right, operation):
