@@ -16,7 +16,7 @@ from oddlytyped.optim import Adam
 from mnist_data import limit_dataset, load_mnist
 
 
-class AstraMLP:
+class OddlyTypedMLP:
     def __init__(self, hidden_size=128, seed=2026):
         self.hidden = Linear(784, hidden_size, seed=seed)
         self.activation = ReLU()
@@ -29,14 +29,14 @@ class AstraMLP:
         return self.hidden.parameters() + self.output.parameters()
 
 
-def make_torch_model(astra_model):
-    hidden_size = len(astra_model.hidden.bias.data[0])
+def make_torch_model(oddlytyped_model):
+    hidden_size = len(oddlytyped_model.hidden.bias.data[0])
     model = nn.Sequential(nn.Linear(784, hidden_size), nn.ReLU(), nn.Linear(hidden_size, 10))
     with torch.no_grad():
-        model[0].weight.copy_(torch.tensor(astra_model.hidden.weight.data, dtype=torch.float64).T)
-        model[0].bias.copy_(torch.tensor(astra_model.hidden.bias.data[0], dtype=torch.float64))
-        model[2].weight.copy_(torch.tensor(astra_model.output.weight.data, dtype=torch.float64).T)
-        model[2].bias.copy_(torch.tensor(astra_model.output.bias.data[0], dtype=torch.float64))
+        model[0].weight.copy_(torch.tensor(oddlytyped_model.hidden.weight.data, dtype=torch.float64).T)
+        model[0].bias.copy_(torch.tensor(oddlytyped_model.hidden.bias.data[0], dtype=torch.float64))
+        model[2].weight.copy_(torch.tensor(oddlytyped_model.output.weight.data, dtype=torch.float64).T)
+        model[2].bias.copy_(torch.tensor(oddlytyped_model.output.bias.data[0], dtype=torch.float64))
     return model.to(dtype=torch.float64)
 
 
@@ -46,7 +46,7 @@ def batches(dataset, indices, batch_size):
         yield dataset.batch(selected), dataset.labels_for(selected)
 
 
-def train_astra(model, optimizer, criterion, dataset, indices, batch_size):
+def train_oddlytyped(model, optimizer, criterion, dataset, indices, batch_size):
     total_loss = 0.0
     total_correct = 0
     for features, labels in batches(dataset, indices, batch_size):
@@ -62,7 +62,7 @@ def train_astra(model, optimizer, criterion, dataset, indices, batch_size):
     return total_loss / count, total_correct / count
 
 
-def evaluate_astra(model, criterion, dataset, batch_size):
+def evaluate_oddlytyped(model, criterion, dataset, batch_size):
     total_loss = 0.0
     total_correct = 0
     indices = list(range(len(dataset)))
@@ -131,14 +131,14 @@ def main():
     except (TypeError, ValueError) as exc:
         parser.error(str(exc))
 
-    astra = AstraMLP(args.hidden_size, args.seed)
+    oddlytyped_model = OddlyTypedMLP(args.hidden_size, args.seed)
     reference = make_torch_model(astra)
-    astra_optimizer = Adam(astra.parameters(), lr=0.001)
+    oddlytyped_optimizer = Adam(oddlytyped_model.parameters(), lr=0.001)
     torch_optimizer = torch.optim.Adam(
         reference.parameters(), lr=0.001, betas=(0.9, 0.999),
         eps=1e-8, foreach=False, fused=False,
     )
-    astra_loss = CrossEntropyLoss()
+    oddlytyped_loss = CrossEntropyLoss()
     torch_loss = nn.CrossEntropyLoss()
     rng = random.Random(args.seed)
 
@@ -148,17 +148,17 @@ def main():
     print("Precision: float64 | Optimizer: Adam(lr=0.001, betas=(0.9, 0.999), eps=1e-8)")
     print("Initial weights: copied from OddlyTyped to PyTorch")
     print()
-    astra_elapsed = 0.0
+    oddlytyped_elapsed = 0.0
     torch_elapsed = 0.0
 
     for epoch in range(1, args.epochs + 1):
         indices = list(range(len(training)))
         rng.shuffle(indices)
         start = time.perf_counter()
-        a_train = train_astra(astra, astra_optimizer, astra_loss,
+        a_train = train_oddlytyped(oddlytyped_model, oddlytyped_optimizer, oddlytyped_loss,
                               training, indices, args.batch_size)
-        a_test = evaluate_astra(astra, astra_loss, test, args.batch_size)
-        astra_elapsed += time.perf_counter() - start
+        a_test = evaluate_oddlytyped(oddlytyped_model, oddlytyped_loss, test, args.batch_size)
+        oddlytyped_elapsed += time.perf_counter() - start
 
         start = time.perf_counter()
         t_train = train_torch(reference, torch_optimizer, torch_loss,
@@ -173,12 +173,12 @@ def main():
               f" | test loss {t_test[0]:.4f} | test acc {t_test[1]*100:.2f}%")
 
     print()
-    print(f"OddlyTyped elapsed (train + evaluation): {astra_elapsed:.2f}s")
+    print(f"OddlyTyped elapsed (train + evaluation): {oddlytyped_elapsed:.2f}s")
     print(f"PyTorch elapsed (train + evaluation): {torch_elapsed:.2f}s")
     print(f"Final test accuracy delta (OddlyTyped - PyTorch): "
           f"{(a_test[1] - t_test[1]) * 100:+.2f} percentage points")
     if torch_elapsed > 0:
-        print(f"Observed speed ratio (OddlyTyped / PyTorch): {astra_elapsed / torch_elapsed:.2f}x")
+        print(f"Observed speed ratio (OddlyTyped / PyTorch): {oddlytyped_elapsed / torch_elapsed:.2f}x")
     print("Note: timings are single-run CPU measurements, not statistically robust claims.")
 
 
