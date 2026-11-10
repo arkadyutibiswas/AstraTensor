@@ -1,4 +1,4 @@
-""""Tests for native-backend discovery and NumPy fallback behaviour."""
+"""Tests for native-backend discovery and NumPy fallback behaviour."""
 
 import builtins
 import warnings
