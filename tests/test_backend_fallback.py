@@ -15,8 +15,8 @@ def _block_backend_import(monkeypatch, error):
 
     def guarded_import(name, globals=None, locals=None, fromlist=(), level=0):
         # A relative "from .backend import ..." reaches __import__ as
-        # name="backend", level=1. Also accept its fully qualified spelling.
-        if name == "backend" and level == 1 or name.endswith(".backend"):
+        # name="backend", level=1.
+        if name == "backend" and level == 1:
             attempts.append((name, level))
             raise error
         return original_import(name, globals, locals, fromlist, level)
@@ -28,7 +28,10 @@ def _block_backend_import(monkeypatch, error):
 
 
 def test_missing_native_backend_warns_once_and_uses_numpy(monkeypatch):
-    attempts = _block_backend_import(monkeypatch, ImportError("simulated missing extension"))
+    missing = ModuleNotFoundError(
+        "No module named 'oddlytyped.backend'", name="oddlytyped.backend"
+    )
+    attempts = _block_backend_import(monkeypatch, missing)
     left = np.array([[1.0, 2.0], [3.0, 4.0]])
     right = np.array([[2.0], [1.0]])
 
@@ -42,7 +45,7 @@ def test_missing_native_backend_warns_once_and_uses_numpy(monkeypatch):
     assert engine._BACKEND_CHECKED is True
 
 
-def test_unexpected_backend_import_error_does_not_mark_lookup_complete(monkeypatch):
+def test_unexpected_backend_loader_error_does_not_mark_lookup_complete(monkeypatch):
     attempts = _block_backend_import(monkeypatch, OSError("simulated loader failure"))
 
     with pytest.raises(OSError, match="simulated loader failure"):
@@ -52,8 +55,24 @@ def test_unexpected_backend_import_error_does_not_mark_lookup_complete(monkeypat
     assert engine._BACKEND_CHECKED is False
 
 
+def test_missing_backend_dependency_is_not_silently_ignored(monkeypatch):
+    missing_dependency = ModuleNotFoundError(
+        "No module named 'broken_dependency'", name="broken_dependency"
+    )
+    attempts = _block_backend_import(monkeypatch, missing_dependency)
+
+    with pytest.raises(ModuleNotFoundError, match="broken_dependency"):
+        engine._matrix_matmul(np.eye(2), np.eye(2))
+
+    assert len(attempts) == 1
+    assert engine._BACKEND_CHECKED is False
+
+
 def test_warning_promoted_to_error_does_not_mark_lookup_complete(monkeypatch):
-    attempts = _block_backend_import(monkeypatch, ImportError("simulated missing extension"))
+    missing = ModuleNotFoundError(
+        "No module named 'oddlytyped.backend'", name="oddlytyped.backend"
+    )
+    attempts = _block_backend_import(monkeypatch, missing)
 
     with warnings.catch_warnings():
         warnings.simplefilter("error", RuntimeWarning)
