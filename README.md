@@ -40,7 +40,7 @@ A full-dataset experiment recorded in [the NumPy storage migration report](docs/
 
 The same report records a controlled PyTorch comparison initialized from the OddlyTyped weights. It reported matching train/test losses and accuracies at each epoch, with a final test-accuracy difference of **+0.00 percentage points**.
 
-**These are historical results from the recorded experiment, not a fresh run of the current cleanup branch.** See the report for the tested commit, configuration, and caveats. No speed advantage is claimed from these results.
+**These are historical results from the experiment recorded at commit `400ed8c9f09e643a3c4cf7044871c983447e128c`.** They predate subsequent validation-hardening changes and are not a fresh run of the current code. See the report for the configuration and caveats. No speed advantage is claimed from these results.
 
 ## Requirements
 
