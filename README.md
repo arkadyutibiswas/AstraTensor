@@ -55,7 +55,7 @@ From the repository root:
 ```bash
 python -m pip install --upgrade pip
 python -m pip install -e .
-python -m pip install pytest
+python -m pip install pybind11 pytest
 python setup.py build_ext --inplace --force
 python -m pytest -q
 ```
