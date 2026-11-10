@@ -14,8 +14,10 @@ def _block_backend_import(monkeypatch, error):
     attempts = []
 
     def guarded_import(name, globals=None, locals=None, fromlist=(), level=0):
-        if name.endswith(".backend"):
-            attempts.append(name)
+        # A relative "from .backend import ..." reaches __import__ as
+        # name="backend", level=1. Also accept its fully qualified spelling.
+        if name == "backend" and level == 1 or name.endswith(".backend"):
+            attempts.append((name, level))
             raise error
         return original_import(name, globals, locals, fromlist, level)
 
