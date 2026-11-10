@@ -132,7 +132,7 @@ def main():
         parser.error(str(exc))
 
     oddlytyped_model = OddlyTypedMLP(args.hidden_size, args.seed)
-    reference = make_torch_model(astra)
+    reference = make_torch_model(oddlytyped_model)
     oddlytyped_optimizer = Adam(oddlytyped_model.parameters(), lr=0.001)
     torch_optimizer = torch.optim.Adam(
         reference.parameters(), lr=0.001, betas=(0.9, 0.999),
